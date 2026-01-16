@@ -12,11 +12,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   Radio, Plus, ArrowLeft, Play, Square, Eye, EyeOff, Lock, RotateCcw, 
-  Loader2, Copy, BarChart3, Trash2, GripVertical, CheckCircle, Clock
+  Loader2, Copy, BarChart3, Trash2, GripVertical, CheckCircle, Clock, QrCode
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { connectSocket, getSocket } from "@/lib/socket";
+import { QRCodeSVG } from "qrcode.react";
 import type { Session, Question, QuestionType, QuestionState } from "@shared/schema";
 
 export default function SessionManager() {
@@ -26,6 +27,7 @@ export default function SessionManager() {
   const sessionId = params.id;
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [questionType, setQuestionType] = useState<QuestionType>("multiple_choice");
   const [questionPrompt, setQuestionPrompt] = useState("");
   const [options, setOptions] = useState(["", ""]);
@@ -214,6 +216,41 @@ export default function SessionManager() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" data-testid="button-show-qr">
+                  <QrCode className="w-4 h-4 mr-2" />
+                  QR Code
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Join QR Code</DialogTitle>
+                  <DialogDescription>
+                    Scan this code to join the session
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-4 py-4">
+                  <div className="bg-white p-4 rounded-lg">
+                    <QRCodeSVG 
+                      value={`${window.location.origin}/join/${session.code}`}
+                      size={256}
+                      level="H"
+                    />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-mono font-bold tracking-widest">{session.code}</p>
+                    <p className="text-muted-foreground text-sm mt-1">
+                      {window.location.origin}/join/{session.code}
+                    </p>
+                  </div>
+                  <Button onClick={copyJoinUrl} variant="outline" className="w-full">
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Join URL
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button variant="outline" size="sm" onClick={copyJoinUrl} data-testid="button-copy-join-url">
               Copy Join URL
             </Button>
