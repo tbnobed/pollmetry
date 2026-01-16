@@ -71,6 +71,17 @@ export async function registerRoutes(
     console.log("Admin account created: admin / admin123");
   }
 
+  // Health check endpoint for Docker/load balancer
+  app.get("/api/health", async (req, res) => {
+    try {
+      // Check database connection
+      await storage.getUserByUsername("admin");
+      res.json({ status: "healthy", timestamp: new Date().toISOString() });
+    } catch (error) {
+      res.status(503).json({ status: "unhealthy", error: "Database connection failed" });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const parsed = insertUserSchema.safeParse(req.body);
