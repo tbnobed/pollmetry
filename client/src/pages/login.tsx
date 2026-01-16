@@ -13,7 +13,6 @@ import { apiRequest } from "@/lib/queryClient";
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -31,30 +30,12 @@ export default function Login() {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string }) => {
-      const response = await apiRequest("POST", "/api/auth/register", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Registration successful" });
-      setLocation("/console");
-    },
-    onError: () => {
-      toast({ title: "Registration failed", description: "Username may already exist", variant: "destructive" });
-    },
-  });
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isRegister) {
-      registerMutation.mutate({ username, password });
-    } else {
-      loginMutation.mutate({ username, password });
-    }
+    loginMutation.mutate({ username, password });
   };
 
-  const isPending = loginMutation.isPending || registerMutation.isPending;
+  const isPending = loginMutation.isPending;
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,14 +61,9 @@ export default function Login() {
       <main className="container mx-auto px-4 py-12">
         <Card className="max-w-md mx-auto">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">
-              {isRegister ? "Create Account" : "Pollster Login"}
-            </CardTitle>
+            <CardTitle className="text-2xl">Pollster Login</CardTitle>
             <CardDescription>
-              {isRegister 
-                ? "Sign up to create and manage polls" 
-                : "Sign in to access your dashboard"
-              }
+              Sign in to access your dashboard
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -123,22 +99,9 @@ export default function Login() {
                 data-testid="button-submit-auth"
               >
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {isRegister ? "Create Account" : "Sign In"}
+                Sign In
               </Button>
             </form>
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsRegister(!isRegister)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                data-testid="button-toggle-auth-mode"
-              >
-                {isRegister 
-                  ? "Already have an account? Sign in" 
-                  : "Need an account? Register"
-                }
-              </button>
-            </div>
           </CardContent>
         </Card>
       </main>

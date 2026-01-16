@@ -40,29 +40,14 @@ export async function registerRoutes(
     })
   );
 
-  app.post("/api/auth/register", async (req, res) => {
-    try {
-      const parsed = insertUserSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input" });
-      }
-
-      const existing = await storage.getUserByUsername(parsed.data.username);
-      if (existing) {
-        return res.status(400).json({ error: "Username already exists" });
-      }
-
-      const user = await storage.createUser({
-        username: parsed.data.username,
-        password: hashPassword(parsed.data.password),
-      });
-
-      req.session.userId = user.id;
-      res.json({ id: user.id, username: user.username });
-    } catch (error) {
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+  const existingAdmin = await storage.getUserByUsername("admin");
+  if (!existingAdmin) {
+    await storage.createUser({
+      username: "admin",
+      password: hashPassword("admin123"),
+    });
+    console.log("Admin account created: admin / admin123");
+  }
 
   app.post("/api/auth/login", async (req, res) => {
     try {
