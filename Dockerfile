@@ -20,19 +20,21 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install production dependencies only
+# Install ALL dependencies (need drizzle-kit for migrations)
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Copy built assets from builder
-# The build creates dist/index.cjs (server) and dist/public (client)
 COPY --from=builder /app/dist ./dist
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# Copy drizzle config and shared schema for migrations
+COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/shared ./shared
+COPY --from=builder /app/tsconfig.json ./
 
-USER nodejs
+# Copy entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Expose the application port
 EXPOSE 5000
@@ -42,8 +44,8 @@ ENV NODE_ENV=production
 ENV PORT=5000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:5000/api/health || exit 1
 
-# Start the application
-CMD ["node", "dist/index.cjs"]
+# Start with entrypoint that runs migrations
+ENTRYPOINT ["/entrypoint.sh"]
