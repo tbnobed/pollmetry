@@ -63,7 +63,7 @@ export default function Overlay() {
 
   if (!shouldShow) {
     return (
-      <div className="h-screen bg-transparent flex items-center justify-center overflow-hidden">
+      <div className="h-screen bg-black flex items-center justify-center overflow-hidden">
       </div>
     );
   }
