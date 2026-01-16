@@ -41,7 +41,7 @@ export default function Login() {
   const isPending = loginMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-[#000000]">
+    <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <button 
@@ -58,6 +58,7 @@ export default function Login() {
           <ThemeToggle />
         </div>
       </header>
+
       <main className="container mx-auto px-4 py-12">
         <Card className="max-w-md mx-auto">
           <CardHeader className="text-center">

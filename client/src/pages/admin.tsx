@@ -106,7 +106,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#000000]">
+    <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -123,6 +123,7 @@ export default function AdminPage() {
           <ThemeToggle />
         </div>
       </header>
+
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
