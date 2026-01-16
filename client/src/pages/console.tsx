@@ -260,7 +260,7 @@ export default function Console() {
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => setLocation(`/dashboard/${session.id}`)}
+                      onClick={() => window.open(`/dashboard/${session.id}`, "_blank")}
                       data-testid={`button-dashboard-${session.id}`}
                     >
                       <BarChart3 className="w-4 h-4 mr-2" />
