@@ -22,11 +22,11 @@ WORKDIR /app
 
 # Install production dependencies only
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy built assets from builder
+# The build creates dist/index.cjs (server) and dist/public (client)
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/client/public ./client/public
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
