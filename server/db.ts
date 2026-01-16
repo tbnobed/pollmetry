@@ -10,38 +10,36 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-function parseConnectionString(connectionString: string): pg.PoolConfig {
-  // Handle passwords with special characters by parsing manually
-  // Format: postgresql://user:password@host:port/database
-  const match = connectionString.match(
-    /^postgresql:\/\/([^:]+):(.+)@([^:]+):(\d+)\/(.+?)(\?.*)?$/
-  );
+function createPool(): pg.Pool {
+  const connectionString = process.env.DATABASE_URL!;
   
-  if (match) {
-    const [, user, password, host, port, database, queryString] = match;
-    const config: pg.PoolConfig = {
-      host,
-      port: parseInt(port, 10),
-      database,
-      user,
-      password, // Raw password, not URL encoded
-    };
+  if (process.env.NODE_ENV === "production") {
+    // Production: parse connection string manually to handle special characters
+    const match = connectionString.match(
+      /^postgresql:\/\/([^:]+):(.+)@([^:]+):(\d+)\/(.+?)(\?.*)?$/
+    );
     
-    // Check for SSL in query string
-    if (queryString?.includes("sslmode=require")) {
-      config.ssl = { rejectUnauthorized: false };
+    if (match) {
+      const [, user, password, host, port, database, queryString] = match;
+      const config: pg.PoolConfig = {
+        host,
+        port: parseInt(port, 10),
+        database,
+        user,
+        password,
+      };
+      
+      if (queryString?.includes("sslmode=require")) {
+        config.ssl = { rejectUnauthorized: false };
+      }
+      
+      return new Pool(config);
     }
-    
-    return config;
   }
   
-  // Fallback to connectionString if regex doesn't match
-  return { connectionString };
+  // Development or fallback: use connection string directly
+  return new Pool({ connectionString });
 }
 
-const connectionConfig = process.env.NODE_ENV === "production"
-  ? parseConnectionString(process.env.DATABASE_URL)
-  : { connectionString: process.env.DATABASE_URL };
-
-export const pool = new Pool(connectionConfig);
+export const pool = createPool();
 export const db = drizzle(pool, { schema });
