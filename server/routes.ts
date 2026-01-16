@@ -1,27 +1,35 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
-import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
 import { storage } from "./storage";
 import { insertUserSchema, insertSessionSchema, insertQuestionSchema, type QuestionState } from "@shared/schema";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 
-declare module "express-session" {
-  interface SessionData {
-    userId?: string;
-  }
-}
+const authTokens = new Map<string, { userId: string; expiresAt: number }>();
 
 function hashPassword(password: string): string {
   return createHash("sha256").update(password).digest("hex");
 }
 
+function generateToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
 function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+  
+  const token = authHeader.substring(7);
+  const session = authTokens.get(token);
+  
+  if (!session || session.expiresAt < Date.now()) {
+    authTokens.delete(token);
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  
+  (req as any).userId = session.userId;
   next();
 }
 
@@ -29,32 +37,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  const PgSession = connectPgSimple(session);
-  
-  app.set("trust proxy", 1);
-  
-  const isProduction = process.env.NODE_ENV === "production";
-  const isReplit = !!process.env.REPL_ID;
-  
-  app.use(
-    session({
-      store: new PgSession({
-        pool: pool,
-        tableName: "user_sessions",
-        createTableIfMissing: true,
-      }),
-      secret: process.env.SESSION_SECRET || "livepoll-secret-key",
-      resave: false,
-      saveUninitialized: false,
-      proxy: true,
-      cookie: {
-        secure: isReplit || isProduction,
-        httpOnly: true,
-        sameSite: isReplit ? "none" : "lax",
-        maxAge: 24 * 60 * 60 * 1000,
-      },
-    })
-  );
 
   const existingAdmin = await storage.getUserByUsername("admin");
   if (!existingAdmin) {
@@ -77,29 +59,42 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      req.session.userId = user.id;
-      req.session.save((err) => {
-        if (err) {
-          return res.status(500).json({ error: "Session error" });
-        }
-        res.json({ id: user.id, username: user.username });
+      const token = generateToken();
+      authTokens.set(token, {
+        userId: user.id,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
       });
+
+      res.json({ id: user.id, username: user.username, token });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
   app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy(() => {
-      res.json({ success: true });
-    });
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      authTokens.delete(token);
+    }
+    res.json({ success: true });
   });
 
   app.get("/api/auth/me", async (req, res) => {
-    if (!req.session.userId) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    const user = await storage.getUser(req.session.userId);
+    
+    const token = authHeader.substring(7);
+    const session = authTokens.get(token);
+    
+    if (!session || session.expiresAt < Date.now()) {
+      authTokens.delete(token);
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    const user = await storage.getUser(session.userId);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
@@ -113,7 +108,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid input" });
       }
 
-      const session = await storage.createSession(parsed.data, req.session.userId!);
+      const session = await storage.createSession(parsed.data, (req as any).userId);
       res.json(session);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -122,7 +117,7 @@ export async function registerRoutes(
 
   app.get("/api/sessions", requireAuth, async (req, res) => {
     try {
-      const sessions = await storage.getSessionsByUser(req.session.userId!);
+      const sessions = await storage.getSessionsByUser((req as any).userId);
       res.json(sessions);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });

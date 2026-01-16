@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Radio, Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import type { Session } from "@shared/schema";
 
 export default function Console() {
@@ -52,6 +52,7 @@ export default function Console() {
       await apiRequest("POST", "/api/auth/logout", {});
     },
     onSuccess: () => {
+      clearAuthToken();
       queryClient.clear();
       setLocation("/");
     },
