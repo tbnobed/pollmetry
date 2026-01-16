@@ -228,6 +228,26 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/sessions/:id", requireAuth, async (req, res) => {
+    try {
+      const session = await storage.getSession(req.params.id);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      
+      const user = await storage.getUser((req as any).userId);
+      const hasAccess = session.createdById === (req as any).userId || user?.isAdmin;
+      if (!hasAccess) {
+        return res.status(403).json({ error: "Not authorized to delete this session" });
+      }
+
+      await storage.deleteSession(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/sessions/:sessionId/questions", requireAuth, async (req, res) => {
     try {
       const session = await storage.getSession(req.params.sessionId);

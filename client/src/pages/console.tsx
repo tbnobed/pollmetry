@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Radio, Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users } from "lucide-react";
+import { Radio, Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import type { Session } from "@shared/schema";
@@ -55,6 +55,19 @@ export default function Console() {
       clearAuthToken();
       queryClient.clear();
       setLocation("/");
+    },
+  });
+
+  const deleteSessionMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      await apiRequest("DELETE", `/api/sessions/${sessionId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
+      toast({ title: "Session deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete session", variant: "destructive" });
     },
   });
 
@@ -249,15 +262,29 @@ export default function Console() {
                       Dashboard
                     </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    className="w-full"
-                    onClick={() => window.open(`/overlay/${session.code}`, "_blank")}
-                    data-testid={`button-overlay-${session.id}`}
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open Overlay
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      className="flex-1"
+                      onClick={() => window.open(`/overlay/${session.code}`, "_blank")}
+                      data-testid={`button-overlay-${session.id}`}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Overlay
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this session? This will also delete all questions and votes.")) {
+                          deleteSessionMutation.mutate(session.id);
+                        }
+                      }}
+                      data-testid={`button-delete-session-${session.id}`}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
