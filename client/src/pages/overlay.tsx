@@ -63,7 +63,7 @@ export default function Overlay() {
 
   if (!shouldShow) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
+      <div className="h-screen bg-transparent flex items-center justify-center overflow-hidden">
       </div>
     );
   }
@@ -96,34 +96,38 @@ export default function Overlay() {
   };
 
   const optionData = getOptionData();
+  const optionCount = optionData.length;
 
   return (
-    <div className="min-h-screen bg-black text-white p-[8%] flex flex-col">
-      <div className="mb-8">
-        <h1 className="text-5xl md:text-6xl font-bold leading-tight">
+    <div className="h-screen bg-black text-white p-[4%] flex flex-col overflow-hidden">
+      <div className="shrink-0 mb-4">
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight line-clamp-2">
           {currentQuestion.prompt}
         </h1>
       </div>
 
       {currentQuestion.isRevealed && (currentQuestion.type === "multiple_choice" || currentQuestion.type === "emoji") && (
-        <div className="flex-1 space-y-6">
+        <div className="flex-1 flex flex-col justify-center gap-2 min-h-0">
           {optionData.map((item, index) => (
-            <div key={index}>
-              <div className="flex items-center justify-between mb-3">
-                <span className={currentQuestion.type === "emoji" ? "text-5xl" : "text-3xl font-semibold"}>
+            <div key={index} className="shrink-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className={currentQuestion.type === "emoji" ? "text-3xl md:text-4xl" : "text-xl md:text-2xl font-semibold truncate max-w-[70%]"}>
                   {item.label}
                 </span>
-                <span className="text-4xl font-bold font-mono">
+                <span className="text-2xl md:text-3xl font-bold font-mono">
                   {Math.round(item.percentage)}%
                 </span>
               </div>
-              <div className="h-20 rounded-xl bg-white/10 overflow-hidden relative">
+              <div 
+                className="rounded-lg bg-white/10 overflow-hidden relative"
+                style={{ height: `clamp(2rem, ${Math.max(12 / optionCount, 3)}vh, 4rem)` }}
+              >
                 <div
                   className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
                   style={{ width: `${item.percentage}%` }}
                 />
-                <div className="absolute inset-0 flex items-center justify-end pr-6">
-                  <span className="text-2xl font-mono font-bold">
+                <div className="absolute inset-0 flex items-center justify-end pr-4">
+                  <span className="text-lg md:text-xl font-mono font-bold">
                     {item.votes.toLocaleString()}
                   </span>
                 </div>
@@ -134,32 +138,32 @@ export default function Overlay() {
       )}
 
       {currentQuestion.isRevealed && currentQuestion.type === "slider" && tally && (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center min-h-0">
           <div className="text-center">
-            <div className="text-9xl font-bold font-mono mb-4">
+            <div className="text-7xl md:text-8xl lg:text-9xl font-bold font-mono mb-2">
               {Math.round((tally as any).average || 0)}
             </div>
-            <p className="text-3xl text-white/60">Average Score</p>
+            <p className="text-xl md:text-2xl text-white/60">Average Score</p>
           </div>
         </div>
       )}
 
       {!currentQuestion.isRevealed && (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center min-h-0">
           <div className="text-center">
-            <div className="text-6xl font-bold font-mono mb-4 animate-pulse">
+            <div className="text-5xl md:text-6xl font-bold font-mono mb-2 animate-pulse">
               {totalVotes.toLocaleString()}
             </div>
-            <p className="text-2xl text-white/60">Votes Received</p>
+            <p className="text-xl md:text-2xl text-white/60">Votes Received</p>
           </div>
         </div>
       )}
 
-      <div className="mt-auto pt-8 flex items-center justify-between">
+      <div className="shrink-0 pt-4 flex items-center justify-between">
         <div className="text-white/40 text-sm">
           #{code}
         </div>
-        <div className="text-white/60 font-mono text-xl">
+        <div className="text-white/60 font-mono text-lg">
           {totalVotes.toLocaleString()} votes
         </div>
       </div>
