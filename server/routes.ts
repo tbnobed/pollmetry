@@ -484,12 +484,10 @@ export async function registerRoutes(
         return;
       }
 
-      if (question.type !== "emoji") {
-        const hasVoted = await storage.hasVoted(data.questionId, data.voterToken);
-        if (hasVoted) {
-          socket.emit("error", { message: "Already voted" });
-          return;
-        }
+      const hasVoted = await storage.hasVoted(data.questionId, data.voterToken);
+      if (hasVoted) {
+        socket.emit("error", { message: "Already voted" });
+        return;
       }
 
       const segment = (socket.handshake.query.segment as string) || "remote";

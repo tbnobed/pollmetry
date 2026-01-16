@@ -17,6 +17,7 @@ interface VotingInterfaceProps {
 export function VotingInterface({ question, hasVoted, onVote, segment }: VotingInterfaceProps) {
   const [sliderValue, setSliderValue] = useState(50);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [selectedEmoji, setSelectedEmoji] = useState<EmojiType | null>(null);
 
   const handleMultipleChoiceVote = (optionId: number) => {
     if (hasVoted || question.isFrozen) return;
@@ -30,7 +31,8 @@ export function VotingInterface({ question, hasVoted, onVote, segment }: VotingI
   };
 
   const handleEmojiVote = (emoji: EmojiType) => {
-    if (question.isFrozen) return;
+    if (selectedEmoji || question.isFrozen) return;
+    setSelectedEmoji(emoji);
     onVote({ emoji });
   };
 
@@ -162,29 +164,50 @@ export function VotingInterface({ question, hasVoted, onVote, segment }: VotingI
 
         {question.type === "emoji" && (
           <div className="flex-1 flex flex-col justify-center">
-            <div className="flex flex-wrap justify-center gap-4">
-              {EMOJIS.map((emoji) => {
-                const emojiCount = tally?.byOption?.[emoji] || 0;
-                return (
-                  <button
-                    key={emoji}
-                    onClick={() => handleEmojiVote(emoji)}
-                    disabled={question.isFrozen}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl hover-elevate active-elevate-2 transition-transform"
-                    data-testid={`button-emoji-${emoji}`}
-                  >
-                    <span className="text-5xl md:text-6xl">{emoji}</span>
-                    {question.isRevealed && (
-                      <span className="text-lg font-mono font-bold">{emojiCount}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {question.isRevealed && (
-              <div className="text-center mt-8 text-muted-foreground">
-                {totalVotes} total reactions
-              </div>
+            {selectedEmoji ? (
+              <Card className="max-w-md mx-auto w-full">
+                <CardContent className="pt-8 pb-8 text-center">
+                  <div className="w-16 h-16 rounded-full bg-chart-2/20 flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-chart-2" />
+                  </div>
+                  <h2 className="text-xl font-semibold mb-2">Vote Submitted!</h2>
+                  <p className="text-muted-foreground mb-4">
+                    You selected: <span className="text-4xl">{selectedEmoji}</span>
+                  </p>
+                  {question.isRevealed && (
+                    <div className="text-muted-foreground">
+                      {totalVotes} total reactions
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div className="flex flex-wrap justify-center gap-4">
+                  {EMOJIS.map((emoji) => {
+                    const emojiCount = tally?.byOption?.[emoji] || 0;
+                    return (
+                      <button
+                        key={emoji}
+                        onClick={() => handleEmojiVote(emoji)}
+                        disabled={question.isFrozen}
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-transparent hover:border-primary hover:bg-primary/10 active:bg-primary/20 transition-all"
+                        data-testid={`button-emoji-${emoji}`}
+                      >
+                        <span className="text-5xl md:text-6xl">{emoji}</span>
+                        {question.isRevealed && (
+                          <span className="text-lg font-mono font-bold">{emojiCount}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {question.isRevealed && (
+                  <div className="text-center mt-8 text-muted-foreground">
+                    {totalVotes} total reactions
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
