@@ -114,7 +114,7 @@ export default function Console() {
               <Radio className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <span className="text-xl font-semibold">LivePoll</span>
+              <span className="text-xl font-semibold">PollMetry.io</span>
               <Badge variant="secondary" className="ml-2">Console</Badge>
             </div>
           </div>

@@ -1,8 +1,8 @@
-# LivePoll - Real-time Audience Polling System
+# PollMetry.io - Real-time Audience Polling System
 
 ## Overview
 
-LivePoll is a real-time audience polling system designed for livestream and hybrid (in-room + remote) environments. The application enables pollsters to create and manage interactive polling sessions while allowing audiences to participate via short join codes. It features three distinct interfaces: a Producer Console for poll management, an Audience voting interface, and a Dashboard for real-time analytics with segment comparison (room vs remote participants).
+PollMetry.io is a real-time audience polling system designed for livestream and hybrid (in-room + remote) environments. The application enables pollsters to create and manage interactive polling sessions while allowing audiences to participate via short join codes. It features three distinct interfaces: a Producer Console for poll management, an Audience voting interface, and a Dashboard for real-time analytics with segment comparison (room vs remote participants).
 
 ## User Preferences
 
