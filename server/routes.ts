@@ -33,6 +33,9 @@ export async function registerRoutes(
   
   app.set("trust proxy", 1);
   
+  const isProduction = process.env.NODE_ENV === "production";
+  const isReplit = !!process.env.REPL_ID;
+  
   app.use(
     session({
       store: new PgSession({
@@ -43,10 +46,11 @@ export async function registerRoutes(
       secret: process.env.SESSION_SECRET || "livepoll-secret-key",
       resave: false,
       saveUninitialized: false,
+      proxy: true,
       cookie: {
-        secure: false,
+        secure: isReplit || isProduction,
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: isReplit ? "none" : "lax",
         maxAge: 24 * 60 * 60 * 1000,
       },
     })
