@@ -10,16 +10,33 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-function parseConnectionString(connectionString: string) {
-  const url = new URL(connectionString);
-  return {
-    host: url.hostname,
-    port: parseInt(url.port || "5432", 10),
-    database: url.pathname.slice(1),
-    user: url.username,
-    password: decodeURIComponent(url.password),
-    ssl: url.searchParams.get("sslmode") === "require" ? { rejectUnauthorized: false } : false,
-  };
+function parseConnectionString(connectionString: string): pg.PoolConfig {
+  // Handle passwords with special characters by parsing manually
+  // Format: postgresql://user:password@host:port/database
+  const match = connectionString.match(
+    /^postgresql:\/\/([^:]+):(.+)@([^:]+):(\d+)\/(.+?)(\?.*)?$/
+  );
+  
+  if (match) {
+    const [, user, password, host, port, database, queryString] = match;
+    const config: pg.PoolConfig = {
+      host,
+      port: parseInt(port, 10),
+      database,
+      user,
+      password, // Raw password, not URL encoded
+    };
+    
+    // Check for SSL in query string
+    if (queryString?.includes("sslmode=require")) {
+      config.ssl = { rejectUnauthorized: false };
+    }
+    
+    return config;
+  }
+  
+  // Fallback to connectionString if regex doesn't match
+  return { connectionString };
 }
 
 const connectionConfig = process.env.NODE_ENV === "production"
