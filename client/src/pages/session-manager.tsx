@@ -18,7 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { connectSocket, getSocket } from "@/lib/socket";
 import { QRCodeSVG } from "qrcode.react";
-import type { Session, Question, QuestionType, QuestionState } from "@shared/schema";
+import type { Session, Question, QuestionType, QuestionState, VoteTally } from "@shared/schema";
+import { Progress } from "@/components/ui/progress";
+import { EMOJIS } from "@shared/schema";
 
 export default function SessionManager() {
   const params = useParams<{ id: string }>();
@@ -34,6 +36,7 @@ export default function SessionManager() {
   const [questionPrompt, setQuestionPrompt] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [duration, setDuration] = useState<number | undefined>(undefined);
+  const [tallies, setTallies] = useState<Record<string, VoteTally>>({});
 
   const { data: session, isLoading: sessionLoading } = useQuery<Session>({
     queryKey: ["/api/sessions", sessionId],

@@ -55,7 +55,13 @@ export default function Overlay() {
     };
   }, [session, code]);
 
-  if (!currentQuestion || currentQuestion.state !== "LIVE") {
+  // Show overlay for LIVE questions, or CLOSED questions that are revealed
+  const shouldShow = currentQuestion && (
+    currentQuestion.state === "LIVE" || 
+    (currentQuestion.state === "CLOSED" && currentQuestion.isRevealed)
+  );
+
+  if (!shouldShow) {
     return (
       <div className="min-h-screen bg-transparent flex items-center justify-center">
       </div>
