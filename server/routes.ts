@@ -194,7 +194,14 @@ export async function registerRoutes(
       const user = await storage.getUser((req as any).userId);
       if (user?.isAdmin) {
         const sessions = await storage.getAllSessions();
-        res.json(sessions);
+        // Add creator username for admin view
+        const sessionsWithCreator = await Promise.all(
+          sessions.map(async (session) => {
+            const creator = await storage.getUser(session.createdById);
+            return { ...session, creatorUsername: creator?.username || "Unknown" };
+          })
+        );
+        res.json(sessionsWithCreator);
       } else {
         const sessions = await storage.getSessionsByUser((req as any).userId);
         res.json(sessions);

@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import type { Session } from "@shared/schema";
 
+type SessionWithCreator = Session & { creatorUsername?: string };
+
 export default function Console() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -24,7 +26,7 @@ export default function Console() {
     queryKey: ["/api/auth/me"],
   });
 
-  const { data: sessions, isLoading: sessionsLoading } = useQuery<Session[]>({
+  const { data: sessions, isLoading: sessionsLoading } = useQuery<SessionWithCreator[]>({
     queryKey: ["/api/sessions"],
     enabled: !!user,
   });
@@ -222,6 +224,9 @@ export default function Console() {
                       <CardTitle className="text-lg">{session.name}</CardTitle>
                       <CardDescription className="mt-1">
                         Created {new Date(session.createdAt).toLocaleDateString()}
+                        {user?.isAdmin && session.creatorUsername && (
+                          <span className="block text-xs">by {session.creatorUsername}</span>
+                        )}
                       </CardDescription>
                     </div>
                   </div>
