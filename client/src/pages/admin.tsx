@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,15 @@ export default function AdminPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const { data: currentUser, isLoading: userLoading } = useQuery<{ id: string; username: string; isAdmin: boolean }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  useEffect(() => {
+    if (!userLoading && !currentUser) {
+      setLocation("/login");
+    }
+  }, [userLoading, currentUser, setLocation]);
 
   const { data: users, isLoading } = useQuery<UserInfo[]>({
     queryKey: ["/api/admin/users"],
@@ -68,7 +76,15 @@ export default function AdminPage() {
     }
   };
 
-  if (!currentUser.isAdmin) {
+  if (userLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!currentUser || !currentUser.isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md">
