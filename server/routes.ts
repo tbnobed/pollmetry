@@ -33,6 +33,29 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  
+  const token = authHeader.substring(7);
+  const session = authTokens.get(token);
+  
+  if (!session || session.expiresAt < Date.now()) {
+    authTokens.delete(token);
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  
+  const user = await storage.getUser(session.userId);
+  if (!user || !user.isAdmin) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  
+  (req as any).userId = session.userId;
+  next();
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -43,6 +66,7 @@ export async function registerRoutes(
     await storage.createUser({
       username: "admin",
       password: hashPassword("admin123"),
+      isAdmin: true,
     });
     console.log("Admin account created: admin / admin123");
   }
@@ -65,7 +89,7 @@ export async function registerRoutes(
         expiresAt: Date.now() + 24 * 60 * 60 * 1000,
       });
 
-      res.json({ id: user.id, username: user.username, token });
+      res.json({ id: user.id, username: user.username, isAdmin: user.isAdmin, token });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
@@ -98,7 +122,57 @@ export async function registerRoutes(
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
-    res.json({ id: user.id, username: user.username });
+    res.json({ id: user.id, username: user.username, isAdmin: user.isAdmin });
+  });
+
+  // Admin routes for managing pollsters
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users.map(u => ({ id: u.id, username: u.username, isAdmin: u.isAdmin })));
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username and password required" });
+      }
+
+      const existing = await storage.getUserByUsername(username);
+      if (existing) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+
+      const user = await storage.createUser({
+        username,
+        password: hashPassword(password),
+        isAdmin: false,
+      });
+
+      res.json({ id: user.id, username: user.username, isAdmin: user.isAdmin });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      if (user.isAdmin) {
+        return res.status(400).json({ error: "Cannot delete admin user" });
+      }
+      await storage.deleteUser(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   app.post("/api/sessions", requireAuth, async (req, res) => {

@@ -21,8 +21,9 @@ export default function Login() {
       const response = await apiRequest("POST", "/api/auth/login", data);
       return response.json();
     },
-    onSuccess: (data: { token: string }) => {
+    onSuccess: (data: { token: string; id: string; username: string; isAdmin: boolean }) => {
       setAuthToken(data.token);
+      localStorage.setItem("user", JSON.stringify({ id: data.id, username: data.username, isAdmin: data.isAdmin }));
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({ title: "Login successful" });
       setLocation("/console");

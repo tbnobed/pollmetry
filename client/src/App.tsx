@@ -11,6 +11,7 @@ import Console from "@/pages/console";
 import SessionManager from "@/pages/session-manager";
 import Dashboard from "@/pages/dashboard";
 import Overlay from "@/pages/overlay";
+import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/console/:id" component={SessionManager} />
       <Route path="/dashboard/:id" component={Dashboard} />
       <Route path="/overlay/:code" component={Overlay} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Radio, Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut } from "lucide-react";
+import { Radio, Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import type { Session } from "@shared/schema";
@@ -20,7 +20,7 @@ export default function Console() {
   const [sessionName, setSessionName] = useState("");
   const [broadcastDelay, setBroadcastDelay] = useState(0);
 
-  const { data: user, isLoading: userLoading } = useQuery<{ id: string; username: string }>({
+  const { data: user, isLoading: userLoading } = useQuery<{ id: string; username: string; isAdmin: boolean }>({
     queryKey: ["/api/auth/me"],
   });
 
@@ -107,6 +107,17 @@ export default function Console() {
             <span className="text-muted-foreground text-sm hidden md:block">
               Welcome, {user.username}
             </span>
+            {user.isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation("/admin")}
+                data-testid="button-admin"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Manage Pollsters
+              </Button>
+            )}
             <ThemeToggle />
             <Button
               variant="ghost"
