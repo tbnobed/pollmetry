@@ -249,7 +249,7 @@ export default function SessionManager() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#000000]">
       <header className="border-b border-border sticky top-0 bg-background z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -324,7 +324,6 @@ export default function SessionManager() {
           </div>
         </div>
       </header>
-
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Run of Show</h2>
@@ -608,7 +607,6 @@ export default function SessionManager() {
           </Card>
         )}
       </main>
-
       <Dialog open={editDialogOpen} onOpenChange={(open) => {
         setEditDialogOpen(open);
         if (!open) {
