@@ -149,10 +149,10 @@ export default function Dashboard() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Card className="max-w-md bg-gray-900 border-gray-800">
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+        <Card className="max-w-md bg-white/5 border-white/10">
           <CardContent className="pt-6 text-center">
-            <p className="text-gray-400">Session not found</p>
+            <p className="text-white/60">Session not found</p>
             <Button onClick={() => setLocation("/console")} className="mt-4">
               Back to Console
             </Button>
@@ -216,8 +216,8 @@ export default function Dashboard() {
   const optionData = getOptionData();
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <header className="border-b border-gray-800 sticky top-0 bg-black z-50">
+    <div className="min-h-screen bg-black text-white dark">
+      <header className="border-b border-white/10 sticky top-0 bg-black z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button
@@ -242,13 +242,13 @@ export default function Dashboard() {
 
       <main className="container mx-auto px-4 py-6">
         {!currentQuestion || currentQuestion.state !== "LIVE" ? (
-          <Card className="max-w-2xl mx-auto bg-gray-900 border-gray-800">
+          <Card className="max-w-2xl mx-auto bg-white/5 border-white/10">
             <CardContent className="pt-8 pb-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mx-auto mb-4">
-                <BarChart3 className="w-8 h-8 text-gray-400" />
+              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+                <BarChart3 className="w-8 h-8 text-white/60" />
               </div>
               <h2 className="text-xl font-semibold mb-2">No Active Poll</h2>
-              <p className="text-gray-400">
+              <p className="text-white/60">
                 Start a question from the session manager to see live results here.
               </p>
             </CardContent>
@@ -256,7 +256,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              <Card className="bg-gray-900 border-gray-800">
+              <Card className="bg-white/5 border-white/10">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
@@ -294,14 +294,14 @@ export default function Dashboard() {
                               <span className="text-2xl font-bold font-mono">
                                 {Math.round(item.percentage)}%
                               </span>
-                              <span className="text-gray-400 text-sm ml-2">
+                              <span className="text-white/60 text-sm ml-2">
                                 ({item.votes})
                               </span>
                             </div>
                           </div>
-                          <div className="h-12 rounded-lg bg-gray-800 overflow-hidden relative">
+                          <div className="h-12 rounded-lg bg-white/10 overflow-hidden relative">
                             <div
-                              className="absolute inset-y-0 left-0 bg-amber-500 transition-all duration-300"
+                              className="absolute inset-y-0 left-0 bg-primary transition-all duration-300"
                               style={{ width: `${item.percentage}%` }}
                             />
                           </div>
@@ -315,13 +315,13 @@ export default function Dashboard() {
                       <div className="text-6xl font-bold font-mono mb-4">
                         {Math.round((tally as any).average || 0)}
                       </div>
-                      <p className="text-gray-400">Average Value</p>
+                      <p className="text-white/60">Average Value</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-900 border-gray-800">
+              <Card className="bg-white/5 border-white/10">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Activity className="w-5 h-5" />
@@ -333,26 +333,26 @@ export default function Dashboard() {
                     {momentumData.length > 1 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={momentumData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                           <XAxis 
                             dataKey="time" 
-                            tick={{ fontSize: 10, fill: "#9CA3AF" }}
+                            tick={{ fontSize: 10, fill: "rgba(255,255,255,0.6)" }}
                           />
                           <YAxis 
-                            tick={{ fontSize: 10, fill: "#9CA3AF" }}
+                            tick={{ fontSize: 10, fill: "rgba(255,255,255,0.6)" }}
                           />
                           <Tooltip 
                             contentStyle={{ 
-                              backgroundColor: "#1F2937",
-                              border: "1px solid #374151",
+                              backgroundColor: "rgba(0,0,0,0.9)",
+                              border: "1px solid rgba(255,255,255,0.1)",
                               borderRadius: "6px",
-                              color: "#F9FAFB"
+                              color: "#fff"
                             }}
                           />
                           <Line
                             type="monotone"
                             dataKey="votes"
-                            stroke="#FBBF24"
+                            stroke="hsl(var(--primary))"
                             strokeWidth={2}
                             dot={false}
                             name="Total Votes"
@@ -371,13 +371,13 @@ export default function Dashboard() {
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-full flex items-center justify-center text-gray-400">
+                      <div className="h-full flex items-center justify-center text-white/60">
                         Waiting for votes...
                       </div>
                     )}
                   </div>
                   {session.broadcastDelaySeconds > 0 && (
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-white/60 mt-2">
                       Dashed line shows votes time-shifted by {session.broadcastDelaySeconds}s broadcast delay
                     </p>
                   )}
@@ -386,24 +386,24 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-6">
-              <Card className="bg-gray-900 border-gray-800">
+              <Card className="bg-white/5 border-white/10">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Vote Stats</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center">
                     <div className="text-5xl font-bold font-mono">{totalVotes}</div>
-                    <p className="text-gray-400 text-sm">Total Votes</p>
+                    <p className="text-white/60 text-sm">Total Votes</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 rounded-lg bg-gray-800">
+                    <div className="text-center p-3 rounded-lg bg-white/10">
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Home className="w-4 h-4" />
                         <span className="text-sm">Room</span>
                       </div>
                       <div className="text-2xl font-bold font-mono">{roomVotes}</div>
                     </div>
-                    <div className="text-center p-3 rounded-lg bg-gray-800">
+                    <div className="text-center p-3 rounded-lg bg-white/10">
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Globe className="w-4 h-4" />
                         <span className="text-sm">Remote</span>
@@ -411,7 +411,7 @@ export default function Dashboard() {
                       <div className="text-2xl font-bold font-mono">{remoteVotes}</div>
                     </div>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-gray-800">
+                  <div className="text-center p-3 rounded-lg bg-white/10">
                     <div className="flex items-center justify-center gap-1 mb-1">
                       <TrendingUp className="w-4 h-4" />
                       <span className="text-sm">Votes/sec</span>
@@ -421,7 +421,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className={`bg-gray-900 border-gray-800 ${integrityWarning ? "border-red-500 border-2" : ""}`}>
+              <Card className={`bg-white/5 border-white/10 ${integrityWarning ? "border-red-500 border-2" : ""}`}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <AlertTriangle className={`w-5 h-5 ${integrityWarning ? "text-red-500" : ""}`} />
@@ -434,19 +434,19 @@ export default function Dashboard() {
                       High vote velocity detected ({votesPerSecond.toFixed(1)}/sec)
                     </div>
                   ) : (
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-white/60 text-sm">
                       No anomalies detected
                     </div>
                   )}
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Room votes</span>
+                      <span className="text-white/60">Room votes</span>
                       <span className="font-mono">
                         {totalVotes > 0 ? ((roomVotes / totalVotes) * 100).toFixed(1) : 0}%
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Remote votes</span>
+                      <span className="text-white/60">Remote votes</span>
                       <span className="font-mono">
                         {totalVotes > 0 ? ((remoteVotes / totalVotes) * 100).toFixed(1) : 0}%
                       </span>
