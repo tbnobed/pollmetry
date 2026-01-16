@@ -68,6 +68,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: string): Promise<void> {
+    // First, set sessions created by this user to have no creator
+    await db.update(sessions).set({ createdById: null }).where(eq(sessions.createdById, id));
+    // Then delete the user
     await db.delete(users).where(eq(users.id, id));
   }
 
