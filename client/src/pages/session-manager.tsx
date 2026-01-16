@@ -84,10 +84,22 @@ export default function SessionManager() {
     mutationFn: async ({ questionId, action }: { questionId: string; action: string }) => {
       const socket = getSocket();
       socket.emit("pollster:control", { action, questionId });
-      return new Promise((resolve) => setTimeout(resolve, 100));
+      return new Promise<string>((resolve) => setTimeout(() => resolve(action), 300));
     },
-    onSuccess: () => {
+    onSuccess: (action) => {
       refetchQuestions();
+      const actionMessages: Record<string, string> = {
+        reveal: "Results revealed",
+        hide: "Results hidden",
+        freeze: "Voting frozen",
+        unfreeze: "Voting unfrozen",
+        go_live: "Question is now live",
+        close: "Question closed",
+        reset: "Votes reset",
+      };
+      if (actionMessages[action]) {
+        toast({ title: actionMessages[action] });
+      }
     },
   });
 
