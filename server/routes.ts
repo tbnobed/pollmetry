@@ -151,7 +151,7 @@ export async function registerRoutes(
   app.post("/api/sessions/:sessionId/questions", requireAuth, async (req, res) => {
     try {
       const session = await storage.getSession(req.params.sessionId);
-      if (!session || session.createdById !== req.session.userId) {
+      if (!session || session.createdById !== (req as any).userId) {
         return res.status(404).json({ error: "Session not found" });
       }
 
@@ -181,7 +181,7 @@ export async function registerRoutes(
   app.delete("/api/sessions/:sessionId/questions/:questionId", requireAuth, async (req, res) => {
     try {
       const session = await storage.getSession(req.params.sessionId);
-      if (!session || session.createdById !== req.session.userId) {
+      if (!session || session.createdById !== (req as any).userId) {
         return res.status(404).json({ error: "Session not found" });
       }
 
