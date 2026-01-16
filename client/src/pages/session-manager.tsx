@@ -316,7 +316,7 @@ export default function SessionManager() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setLocation(`/dashboard/${sessionId}`)}
+              onClick={() => window.open(`/dashboard/${sessionId}`, "_blank")}
               data-testid="button-go-dashboard"
             >
               <BarChart3 className="w-4 h-4 mr-2" />
