@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Radio, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, setAuthToken } from "@/lib/queryClient";
 
@@ -51,9 +51,7 @@ export default function Login() {
           >
             <ArrowLeft className="w-5 h-5" />
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <Radio className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img src="/logo.png" alt="PollMetry.io" className="w-10 h-10 rounded-lg" />
               <span className="text-xl font-semibold">PollMetry.io</span>
             </div>
           </button>

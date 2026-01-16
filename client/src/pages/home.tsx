@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Users, BarChart3, Radio, Zap } from "lucide-react";
+import { Users, BarChart3, Zap } from "lucide-react";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -22,9 +22,7 @@ export default function Home() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Radio className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="PollMetry.io" className="w-10 h-10 rounded-lg" />
             <span className="text-xl font-semibold">PollMetry.io</span>
           </div>
           <div className="flex items-center gap-2">

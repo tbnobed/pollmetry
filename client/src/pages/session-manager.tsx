@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { 
-  Radio, Plus, ArrowLeft, Play, Square, Eye, EyeOff, Lock, RotateCcw, 
+  Plus, ArrowLeft, Play, Square, Eye, EyeOff, Lock, RotateCcw, 
   Loader2, Copy, BarChart3, Trash2, GripVertical, CheckCircle, Clock, QrCode, Pencil
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -261,9 +261,7 @@ export default function SessionManager() {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Radio className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="PollMetry.io" className="w-10 h-10 rounded-lg" />
             <div>
               <span className="font-semibold">{session.name}</span>
               <div className="flex items-center gap-2 mt-0.5">

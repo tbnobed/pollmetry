@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { 
-  Radio, ArrowLeft, Users, TrendingUp, AlertTriangle, 
+  ArrowLeft, Users, TrendingUp, AlertTriangle, 
   Loader2, Home, Globe, BarChart3, Activity
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
@@ -228,9 +228,7 @@ export default function Dashboard() {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Radio className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="PollMetry.io" className="w-10 h-10 rounded-lg" />
             <div>
               <span className="font-semibold">{session.name}</span>
               <Badge variant="secondary" className="ml-2">Dashboard</Badge>

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Radio, Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users, Trash2 } from "lucide-react";
+import { Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import type { Session } from "@shared/schema";
@@ -110,9 +110,7 @@ export default function Console() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Radio className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="PollMetry.io" className="w-10 h-10 rounded-lg" />
             <div>
               <span className="text-xl font-semibold">PollMetry.io</span>
               <Badge variant="secondary" className="ml-2">Console</Badge>
@@ -298,7 +296,7 @@ export default function Console() {
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-8 pb-8 text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                <Radio className="w-8 h-8 text-muted-foreground" />
+                <BarChart3 className="w-8 h-8 text-muted-foreground" />
               </div>
               <h2 className="text-xl font-semibold mb-2">No Sessions Yet</h2>
               <p className="text-muted-foreground mb-4">

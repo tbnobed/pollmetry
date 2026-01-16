@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Radio, Users, Globe, Home, Loader2 } from "lucide-react";
+import { Users, Globe, Home, Loader2 } from "lucide-react";
 import { VotingInterface } from "@/components/voting-interface";
 import type { Session, QuestionWithTally, Segment } from "@shared/schema";
 import { getSocket, connectSocket, setSegment } from "@/lib/socket";
@@ -117,9 +117,7 @@ export default function Join() {
               className="flex items-center gap-3"
               data-testid="button-back-home"
             >
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <Radio className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img src="/logo.png" alt="PollMetry.io" className="w-10 h-10 rounded-lg" />
               <span className="text-xl font-semibold">PollMetry.io</span>
             </button>
             <ThemeToggle />
@@ -153,9 +151,7 @@ export default function Join() {
       <header className="border-b border-border shrink-0">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Radio className="w-4 h-4 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="PollMetry.io" className="w-8 h-8 rounded-lg" />
             <div>
               <span className="font-semibold">{session.name}</span>
               <span className="text-muted-foreground text-sm ml-2 font-mono">#{code}</span>
