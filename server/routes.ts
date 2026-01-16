@@ -31,6 +31,8 @@ export async function registerRoutes(
 ): Promise<Server> {
   const PgSession = connectPgSimple(session);
   
+  app.set("trust proxy", 1);
+  
   app.use(
     session({
       store: new PgSession({
@@ -44,6 +46,7 @@ export async function registerRoutes(
       cookie: {
         secure: false,
         httpOnly: true,
+        sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000,
       },
     })

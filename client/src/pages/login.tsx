@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Radio, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -22,6 +22,7 @@ export default function Login() {
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({ title: "Login successful" });
       setLocation("/console");
     },
