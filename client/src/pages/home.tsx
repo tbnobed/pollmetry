@@ -82,43 +82,7 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="hover-elevate">
-              <CardContent className="pt-6">
-                <div className="w-12 h-12 rounded-lg bg-chart-1/10 flex items-center justify-center mb-4">
-                  <Zap className="w-6 h-6 text-chart-1" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Real-time Voting</h3>
-                <p className="text-muted-foreground text-sm">
-                  Instant results with WebSocket-powered live updates. See votes appear as they happen.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover-elevate">
-              <CardContent className="pt-6">
-                <div className="w-12 h-12 rounded-lg bg-chart-2/10 flex items-center justify-center mb-4">
-                  <Users className="w-6 h-6 text-chart-2" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Segment Tracking</h3>
-                <p className="text-muted-foreground text-sm">
-                  Compare in-room vs. remote audience responses with detailed segment analytics.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover-elevate">
-              <CardContent className="pt-6">
-                <div className="w-12 h-12 rounded-lg bg-chart-3/10 flex items-center justify-center mb-4">
-                  <BarChart3 className="w-6 h-6 text-chart-3" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Advanced Dashboard</h3>
-                <p className="text-muted-foreground text-sm">
-                  Momentum charts, integrity monitoring, and broadcast-ready overlays.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          
         </div>
       </main>
     </div>
