@@ -30,6 +30,7 @@ export interface IStorage {
   getSession(id: string): Promise<Session | undefined>;
   getSessionByCode(code: string): Promise<Session | undefined>;
   getSessionsByUser(userId: string): Promise<Session[]>;
+  getAllSessions(): Promise<Session[]>;
   
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestion(id: string): Promise<Question | undefined>;
@@ -104,6 +105,10 @@ export class DatabaseStorage implements IStorage {
 
   async getSessionsByUser(userId: string): Promise<Session[]> {
     return db.select().from(sessions).where(eq(sessions.createdById, userId)).orderBy(desc(sessions.createdAt));
+  }
+
+  async getAllSessions(): Promise<Session[]> {
+    return db.select().from(sessions).orderBy(desc(sessions.createdAt));
   }
 
   async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {

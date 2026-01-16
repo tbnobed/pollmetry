@@ -191,8 +191,14 @@ export async function registerRoutes(
 
   app.get("/api/sessions", requireAuth, async (req, res) => {
     try {
-      const sessions = await storage.getSessionsByUser((req as any).userId);
-      res.json(sessions);
+      const user = await storage.getUser((req as any).userId);
+      if (user?.isAdmin) {
+        const sessions = await storage.getAllSessions();
+        res.json(sessions);
+      } else {
+        const sessions = await storage.getSessionsByUser((req as any).userId);
+        res.json(sessions);
+      }
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
@@ -225,7 +231,9 @@ export async function registerRoutes(
   app.post("/api/sessions/:sessionId/questions", requireAuth, async (req, res) => {
     try {
       const session = await storage.getSession(req.params.sessionId);
-      if (!session || session.createdById !== (req as any).userId) {
+      const user = await storage.getUser((req as any).userId);
+      const hasAccess = session && (session.createdById === (req as any).userId || user?.isAdmin);
+      if (!hasAccess) {
         return res.status(404).json({ error: "Session not found" });
       }
 
@@ -255,7 +263,9 @@ export async function registerRoutes(
   app.put("/api/sessions/:sessionId/questions/:questionId", requireAuth, async (req, res) => {
     try {
       const session = await storage.getSession(req.params.sessionId);
-      if (!session || session.createdById !== (req as any).userId) {
+      const user = await storage.getUser((req as any).userId);
+      const hasAccess = session && (session.createdById === (req as any).userId || user?.isAdmin);
+      if (!hasAccess) {
         return res.status(404).json({ error: "Session not found" });
       }
 
@@ -280,7 +290,9 @@ export async function registerRoutes(
   app.delete("/api/sessions/:sessionId/questions/:questionId", requireAuth, async (req, res) => {
     try {
       const session = await storage.getSession(req.params.sessionId);
-      if (!session || session.createdById !== (req as any).userId) {
+      const user = await storage.getUser((req as any).userId);
+      const hasAccess = session && (session.createdById === (req as any).userId || user?.isAdmin);
+      if (!hasAccess) {
         return res.status(404).json({ error: "Session not found" });
       }
 
