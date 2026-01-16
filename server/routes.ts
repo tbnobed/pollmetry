@@ -178,6 +178,31 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/sessions/:sessionId/questions/:questionId", requireAuth, async (req, res) => {
+    try {
+      const session = await storage.getSession(req.params.sessionId);
+      if (!session || session.createdById !== (req as any).userId) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      const question = await storage.getQuestion(req.params.questionId);
+      if (!question || question.sessionId !== req.params.sessionId) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+
+      const updates: any = {};
+      if (req.body.prompt !== undefined) updates.prompt = req.body.prompt;
+      if (req.body.optionsJson !== undefined) updates.optionsJson = req.body.optionsJson;
+      if (req.body.type !== undefined) updates.type = req.body.type;
+      if (req.body.durationSeconds !== undefined) updates.durationSeconds = req.body.durationSeconds;
+
+      const updated = await storage.updateQuestion(req.params.questionId, updates);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.delete("/api/sessions/:sessionId/questions/:questionId", requireAuth, async (req, res) => {
     try {
       const session = await storage.getSession(req.params.sessionId);

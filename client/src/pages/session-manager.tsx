@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   Radio, Plus, ArrowLeft, Play, Square, Eye, EyeOff, Lock, RotateCcw, 
-  Loader2, Copy, BarChart3, Trash2, GripVertical, CheckCircle, Clock, QrCode
+  Loader2, Copy, BarChart3, Trash2, GripVertical, CheckCircle, Clock, QrCode, Pencil
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -28,6 +28,8 @@ export default function SessionManager() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questionType, setQuestionType] = useState<QuestionType>("multiple_choice");
   const [questionPrompt, setQuestionPrompt] = useState("");
   const [options, setOptions] = useState(["", ""]);
@@ -102,6 +104,24 @@ export default function SessionManager() {
     },
   });
 
+  const editQuestionMutation = useMutation({
+    mutationFn: async (data: { questionId: string; type: QuestionType; prompt: string; optionsJson?: string[]; durationSeconds?: number }) => {
+      const { questionId, ...updates } = data;
+      const response = await apiRequest("PUT", `/api/sessions/${sessionId}/questions/${questionId}`, updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId, "questions"] });
+      setEditDialogOpen(false);
+      setEditingQuestion(null);
+      resetForm();
+      toast({ title: "Question updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update question", variant: "destructive" });
+    },
+  });
+
   const resetForm = () => {
     setQuestionType("multiple_choice");
     setQuestionPrompt("");
@@ -120,6 +140,30 @@ export default function SessionManager() {
       data.optionsJson = options.filter(o => o.trim());
     }
     createQuestionMutation.mutate(data);
+  };
+
+  const openEditDialog = (question: Question) => {
+    setEditingQuestion(question);
+    setQuestionType(question.type);
+    setQuestionPrompt(question.prompt);
+    setOptions(question.optionsJson as string[] || ["", ""]);
+    setDuration(question.durationSeconds || undefined);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQuestion) return;
+    const data: any = {
+      questionId: editingQuestion.id,
+      type: questionType,
+      prompt: questionPrompt,
+      durationSeconds: duration,
+    };
+    if (questionType === "multiple_choice") {
+      data.optionsJson = options.filter(o => o.trim());
+    }
+    editQuestionMutation.mutate(data);
   };
 
   const addOption = () => {
@@ -421,6 +465,15 @@ export default function SessionManager() {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => openEditDialog(question)}
+                          data-testid={`button-edit-${question.id}`}
+                        >
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="destructive"
                           onClick={() => deleteQuestionMutation.mutate(question.id)}
                           data-testid={`button-delete-${question.id}`}
@@ -542,6 +595,105 @@ export default function SessionManager() {
           </Card>
         )}
       </main>
+
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        if (!open) {
+          setEditingQuestion(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Question</DialogTitle>
+            <DialogDescription>Update this poll question</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditQuestion} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Question Type</Label>
+              <Select value={questionType} onValueChange={(v) => setQuestionType(v as QuestionType)}>
+                <SelectTrigger data-testid="select-edit-question-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                  <SelectItem value="slider">Slider (0-100)</SelectItem>
+                  <SelectItem value="emoji">Emoji Reactions</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Question Prompt</Label>
+              <Textarea
+                placeholder="Enter your question..."
+                value={questionPrompt}
+                onChange={(e) => setQuestionPrompt(e.target.value)}
+                required
+                className="min-h-[80px]"
+                data-testid="input-edit-question-prompt"
+              />
+            </div>
+
+            {questionType === "multiple_choice" && (
+              <div className="space-y-2">
+                <Label>Options (2-6)</Label>
+                <div className="space-y-2">
+                  {options.map((option, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder={`Option ${index + 1}`}
+                        value={option}
+                        onChange={(e) => updateOption(index, e.target.value)}
+                        data-testid={`input-edit-option-${index}`}
+                      />
+                      {options.length > 2 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeOption(index)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {options.length < 6 && (
+                  <Button type="button" variant="outline" size="sm" onClick={addOption}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Option
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Duration (optional, seconds)</Label>
+              <Input
+                type="number"
+                min={5}
+                max={300}
+                placeholder="No timer"
+                value={duration || ""}
+                onChange={(e) => setDuration(e.target.value ? parseInt(e.target.value) : undefined)}
+                data-testid="input-edit-duration"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={editQuestionMutation.isPending}
+              data-testid="button-submit-edit-question"
+            >
+              {editQuestionMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -32,6 +32,7 @@ export interface IStorage {
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestion(id: string): Promise<Question | undefined>;
   getQuestionsBySession(sessionId: string): Promise<Question[]>;
+  updateQuestion(id: string, updates: Partial<Pick<Question, 'prompt' | 'optionsJson' | 'type' | 'durationSeconds'>>): Promise<Question | undefined>;
   updateQuestionState(id: string, state: QuestionState): Promise<Question | undefined>;
   updateQuestionRevealed(id: string, isRevealed: boolean): Promise<Question | undefined>;
   updateQuestionFrozen(id: string, isFrozen: boolean): Promise<Question | undefined>;
@@ -110,6 +111,11 @@ export class DatabaseStorage implements IStorage {
 
   async getQuestionsBySession(sessionId: string): Promise<Question[]> {
     return db.select().from(questions).where(eq(questions.sessionId, sessionId)).orderBy(questions.order);
+  }
+
+  async updateQuestion(id: string, updates: Partial<Pick<Question, 'prompt' | 'optionsJson' | 'type' | 'durationSeconds'>>): Promise<Question | undefined> {
+    const [question] = await db.update(questions).set(updates).where(eq(questions.id, id)).returning();
+    return question || undefined;
   }
 
   async updateQuestionState(id: string, state: QuestionState): Promise<Question | undefined> {
