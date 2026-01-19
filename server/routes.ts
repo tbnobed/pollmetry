@@ -96,6 +96,117 @@ export async function registerRoutes(
     }
   });
 
+  // Public broadcast endpoint for Xpression/graphics servers
+  // GET /api/broadcast/:sessionCode - returns live poll data as JSON
+  app.get("/api/broadcast/:sessionCode", async (req, res) => {
+    try {
+      const { sessionCode } = req.params;
+      const session = await storage.getSessionByCode(sessionCode.toUpperCase());
+      
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      const questions = await storage.getQuestionsBySessionId(session.id);
+      const liveQuestion = questions.find(q => q.state === "LIVE");
+      
+      // Build response optimized for broadcast graphics
+      const response: any = {
+        sessionCode: session.code,
+        sessionTitle: session.title,
+        mode: session.mode,
+        isActive: session.isActive,
+        timestamp: new Date().toISOString(),
+        liveQuestion: null,
+        allQuestions: []
+      };
+
+      if (liveQuestion) {
+        const votes = await storage.getVotesByQuestionId(liveQuestion.id);
+        const roomVotes = votes.filter(v => v.segment === "room");
+        const remoteVotes = votes.filter(v => v.segment === "remote");
+
+        // Calculate totals for each option
+        const optionTotals: Record<string, { total: number; room: number; remote: number }> = {};
+        
+        if (liveQuestion.type === "multiple_choice" && Array.isArray(liveQuestion.options)) {
+          liveQuestion.options.forEach((opt: string) => {
+            optionTotals[opt] = { total: 0, room: 0, remote: 0 };
+          });
+        }
+
+        votes.forEach(vote => {
+          const val = String(vote.value);
+          if (!optionTotals[val]) {
+            optionTotals[val] = { total: 0, room: 0, remote: 0 };
+          }
+          optionTotals[val].total++;
+          if (vote.segment === "room") optionTotals[val].room++;
+          if (vote.segment === "remote") optionTotals[val].remote++;
+        });
+
+        // Calculate percentages
+        const totalVotes = votes.length;
+        const options = Object.entries(optionTotals).map(([label, counts]) => ({
+          label,
+          votes: counts.total,
+          roomVotes: counts.room,
+          remoteVotes: counts.remote,
+          percentage: totalVotes > 0 ? Math.round((counts.total / totalVotes) * 100) : 0,
+          roomPercentage: roomVotes.length > 0 ? Math.round((counts.room / roomVotes.length) * 100) : 0,
+          remotePercentage: remoteVotes.length > 0 ? Math.round((counts.remote / remoteVotes.length) * 100) : 0
+        }));
+
+        response.liveQuestion = {
+          id: liveQuestion.id,
+          text: liveQuestion.text,
+          type: liveQuestion.type,
+          state: liveQuestion.state,
+          resultsVisible: liveQuestion.resultsVisible,
+          frozen: liveQuestion.frozen,
+          totalVotes,
+          roomVotes: roomVotes.length,
+          remoteVotes: remoteVotes.length,
+          options
+        };
+      }
+
+      // Include all questions with their current state and results
+      for (const q of questions) {
+        const votes = await storage.getVotesByQuestionId(q.id);
+        const optionTotals: Record<string, number> = {};
+        
+        if (q.type === "multiple_choice" && Array.isArray(q.options)) {
+          q.options.forEach((opt: string) => { optionTotals[opt] = 0; });
+        }
+        votes.forEach(v => {
+          const val = String(v.value);
+          optionTotals[val] = (optionTotals[val] || 0) + 1;
+        });
+
+        response.allQuestions.push({
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          state: q.state,
+          order: q.order,
+          resultsVisible: q.resultsVisible,
+          totalVotes: votes.length,
+          options: Object.entries(optionTotals).map(([label, count]) => ({
+            label,
+            votes: count,
+            percentage: votes.length > 0 ? Math.round((count / votes.length) * 100) : 0
+          }))
+        });
+      }
+
+      res.json(response);
+    } catch (error) {
+      console.error("Broadcast API error:", error);
+      res.status(500).json({ error: "Failed to fetch broadcast data" });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const parsed = insertUserSchema.safeParse(req.body);
