@@ -522,7 +522,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/sessions/:sessionId/survey/stats", requireAuth, async (req, res) => {
+  app.get("/api/sessions/:sessionId/survey/stats", async (req, res) => {
     try {
       const stats = await storage.getSurveyStats(req.params.sessionId);
       res.json(stats);
@@ -531,7 +531,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/sessions/:sessionId/survey/results", requireAuth, async (req, res) => {
+  app.get("/api/sessions/:sessionId/survey/results", async (req, res) => {
     try {
       const questions = await storage.getQuestionsBySession(req.params.sessionId);
       const results = [];
