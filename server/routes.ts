@@ -107,13 +107,13 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Session not found" });
       }
 
-      const questions = await storage.getQuestionsBySessionId(session.id);
+      const questions = await storage.getQuestionsBySession(session.id);
       const liveQuestion = questions.find(q => q.state === "LIVE");
       
       // Build response optimized for broadcast graphics
       const response: any = {
         sessionCode: session.code,
-        sessionTitle: session.title,
+        sessionTitle: session.name,
         mode: session.mode,
         isActive: session.isActive,
         timestamp: new Date().toISOString(),
@@ -122,81 +122,65 @@ export async function registerRoutes(
       };
 
       if (liveQuestion) {
-        const votes = await storage.getVotesByQuestionId(liveQuestion.id);
-        const roomVotes = votes.filter(v => v.segment === "room");
-        const remoteVotes = votes.filter(v => v.segment === "remote");
+        const tally = await storage.getVoteTally(liveQuestion.id);
+        const questionOptions = liveQuestion.optionsJson || [];
 
-        // Calculate totals for each option
-        const optionTotals: Record<string, { total: number; room: number; remote: number }> = {};
-        
-        if (liveQuestion.type === "multiple_choice" && Array.isArray(liveQuestion.options)) {
-          liveQuestion.options.forEach((opt: string) => {
-            optionTotals[opt] = { total: 0, room: 0, remote: 0 };
-          });
-        }
-
-        votes.forEach(vote => {
-          const val = String(vote.value);
-          if (!optionTotals[val]) {
-            optionTotals[val] = { total: 0, room: 0, remote: 0 };
-          }
-          optionTotals[val].total++;
-          if (vote.segment === "room") optionTotals[val].room++;
-          if (vote.segment === "remote") optionTotals[val].remote++;
+        // Build options with segment breakdowns
+        const options = questionOptions.map((opt: string, idx: number) => {
+          const key = idx.toString();
+          const total = tally.byOption?.[key] || 0;
+          const room = tally.bySegmentAndOption?.room?.[key] || 0;
+          const remote = tally.bySegmentAndOption?.remote?.[key] || 0;
+          return {
+            label: opt,
+            votes: total,
+            roomVotes: room,
+            remoteVotes: remote,
+            percentage: tally.total > 0 ? Math.round((total / tally.total) * 100) : 0,
+            roomPercentage: tally.bySegment.room > 0 ? Math.round((room / tally.bySegment.room) * 100) : 0,
+            remotePercentage: tally.bySegment.remote > 0 ? Math.round((remote / tally.bySegment.remote) * 100) : 0
+          };
         });
-
-        // Calculate percentages
-        const totalVotes = votes.length;
-        const options = Object.entries(optionTotals).map(([label, counts]) => ({
-          label,
-          votes: counts.total,
-          roomVotes: counts.room,
-          remoteVotes: counts.remote,
-          percentage: totalVotes > 0 ? Math.round((counts.total / totalVotes) * 100) : 0,
-          roomPercentage: roomVotes.length > 0 ? Math.round((counts.room / roomVotes.length) * 100) : 0,
-          remotePercentage: remoteVotes.length > 0 ? Math.round((counts.remote / remoteVotes.length) * 100) : 0
-        }));
 
         response.liveQuestion = {
           id: liveQuestion.id,
-          text: liveQuestion.text,
+          text: liveQuestion.prompt,
           type: liveQuestion.type,
           state: liveQuestion.state,
-          resultsVisible: liveQuestion.resultsVisible,
-          frozen: liveQuestion.frozen,
-          totalVotes,
-          roomVotes: roomVotes.length,
-          remoteVotes: remoteVotes.length,
+          resultsVisible: liveQuestion.isRevealed,
+          frozen: liveQuestion.isFrozen,
+          totalVotes: tally.total,
+          roomVotes: tally.bySegment.room,
+          remoteVotes: tally.bySegment.remote,
+          votesPerSecond: tally.votesPerSecond || 0,
           options
         };
       }
 
       // Include all questions with their current state and results
       for (const q of questions) {
-        const votes = await storage.getVotesByQuestionId(q.id);
-        const optionTotals: Record<string, number> = {};
-        
-        if (q.type === "multiple_choice" && Array.isArray(q.options)) {
-          q.options.forEach((opt: string) => { optionTotals[opt] = 0; });
-        }
-        votes.forEach(v => {
-          const val = String(v.value);
-          optionTotals[val] = (optionTotals[val] || 0) + 1;
+        const tally = await storage.getVoteTally(q.id);
+        const questionOptions = q.optionsJson || [];
+
+        const options = questionOptions.map((opt: string, idx: number) => {
+          const key = idx.toString();
+          const total = tally.byOption?.[key] || 0;
+          return {
+            label: opt,
+            votes: total,
+            percentage: tally.total > 0 ? Math.round((total / tally.total) * 100) : 0
+          };
         });
 
         response.allQuestions.push({
           id: q.id,
-          text: q.text,
+          text: q.prompt,
           type: q.type,
           state: q.state,
           order: q.order,
-          resultsVisible: q.resultsVisible,
-          totalVotes: votes.length,
-          options: Object.entries(optionTotals).map(([label, count]) => ({
-            label,
-            votes: count,
-            percentage: votes.length > 0 ? Math.round((count / votes.length) * 100) : 0
-          }))
+          resultsVisible: q.isRevealed,
+          totalVotes: tally.total,
+          options
         });
       }
 
