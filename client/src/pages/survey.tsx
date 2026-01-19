@@ -27,6 +27,8 @@ interface SurveyData {
 
 type SurveyState = "start" | "in_progress" | "completed" | "thankyou";
 
+const EMOJI_OPTIONS = ["👍", "❤️", "😂", "😮", "😢", "👎"];
+
 export default function Survey() {
   const params = useParams<{ code: string }>();
   const search = useSearch();
@@ -100,9 +102,14 @@ export default function Survey() {
     const currentQuestion = surveyData.questions[currentQuestionIndex];
     
     if (selectedOption !== null || currentQuestion.type === "slider") {
-      const payload = currentQuestion.type === "slider" 
-        ? { value: sliderValue }
-        : { optionId: selectedOption };
+      let payload;
+      if (currentQuestion.type === "slider") {
+        payload = { value: sliderValue };
+      } else if (currentQuestion.type === "emoji") {
+        payload = { emoji: EMOJI_OPTIONS[selectedOption!] };
+      } else {
+        payload = { optionId: selectedOption };
+      }
       
       await submitVoteMutation.mutateAsync({
         questionId: currentQuestion.id,
@@ -371,16 +378,16 @@ export default function Survey() {
                   </div>
                 )}
 
-                {currentQuestion.type === "emoji" && currentQuestion.optionsJson && (
+                {currentQuestion.type === "emoji" && (
                   <div className="flex flex-wrap justify-center gap-3">
-                    {currentQuestion.optionsJson.map((emoji, index) => (
+                    {EMOJI_OPTIONS.map((emoji, index) => (
                       <button
                         key={index}
                         onClick={() => setSelectedOption(index)}
-                        className={`text-4xl p-3 rounded-lg transition-all ${
+                        className={`text-5xl p-4 rounded-lg transition-all ${
                           selectedOption === index
-                            ? "bg-primary/20 scale-125"
-                            : "hover:bg-muted"
+                            ? "bg-primary/20 scale-125 ring-2 ring-primary"
+                            : "hover:bg-muted hover:scale-110"
                         }`}
                         data-testid={`emoji-${index}`}
                       >
