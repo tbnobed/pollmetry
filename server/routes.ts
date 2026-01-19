@@ -191,6 +191,131 @@ export async function registerRoutes(
     }
   });
 
+  // Hardware voting device endpoint for external keypads (Turning, iClicker, etc.)
+  // POST /api/vote/hardware - accepts votes from hardware devices
+  app.post("/api/vote/hardware", async (req, res) => {
+    try {
+      const { sessionCode, deviceId, optionIndex, segment = "room" } = req.body;
+
+      if (!sessionCode || !deviceId || optionIndex === undefined) {
+        return res.status(400).json({ 
+          error: "Missing required fields", 
+          required: ["sessionCode", "deviceId", "optionIndex"],
+          example: { sessionCode: "ABC123", deviceId: "KEYPAD-001", optionIndex: 0, segment: "room" }
+        });
+      }
+
+      const session = await storage.getSessionByCode(sessionCode.toUpperCase());
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      if (!session.isActive) {
+        return res.status(400).json({ error: "Session is not active" });
+      }
+
+      const questions = await storage.getQuestionsBySession(session.id);
+      const liveQuestion = questions.find(q => q.state === "LIVE");
+
+      if (!liveQuestion) {
+        return res.status(400).json({ error: "No question is currently live" });
+      }
+
+      if (liveQuestion.isFrozen) {
+        return res.status(400).json({ error: "Voting is frozen for this question" });
+      }
+
+      // Create a deterministic token hash from the device ID
+      const voterTokenHash = createHash("sha256").update(`hardware-${deviceId}`).digest("hex");
+
+      // Check if this device already voted on this question
+      const hasVoted = await storage.hasVoted(liveQuestion.id, voterTokenHash);
+      if (hasVoted) {
+        return res.status(400).json({ error: "This device has already voted on this question" });
+      }
+
+      // Validate option index
+      const options = liveQuestion.optionsJson || [];
+      if (optionIndex < 0 || optionIndex >= options.length) {
+        return res.status(400).json({ 
+          error: "Invalid option index", 
+          validRange: `0-${options.length - 1}`,
+          options: options 
+        });
+      }
+
+      // Record the vote
+      await storage.createVote({
+        questionId: liveQuestion.id,
+        segment: segment === "remote" ? "remote" : "room",
+        voterTokenHash,
+        payloadJson: { optionId: optionIndex }
+      });
+
+      // Emit real-time update
+      io.to(`session:${session.id}`).emit("vote_update", {
+        questionId: liveQuestion.id,
+        tally: await storage.getVoteTally(liveQuestion.id)
+      });
+
+      res.json({ 
+        success: true, 
+        message: "Vote recorded",
+        deviceId,
+        questionId: liveQuestion.id,
+        optionIndex,
+        optionLabel: options[optionIndex]
+      });
+    } catch (error) {
+      console.error("Hardware vote error:", error);
+      res.status(500).json({ error: "Failed to record vote" });
+    }
+  });
+
+  // Get current live question for hardware devices (simpler than full broadcast)
+  app.get("/api/vote/hardware/status/:sessionCode", async (req, res) => {
+    try {
+      const { sessionCode } = req.params;
+      const session = await storage.getSessionByCode(sessionCode.toUpperCase());
+      
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      const questions = await storage.getQuestionsBySession(session.id);
+      const liveQuestion = questions.find(q => q.state === "LIVE");
+
+      if (!liveQuestion) {
+        return res.json({ 
+          sessionActive: session.isActive,
+          hasLiveQuestion: false,
+          question: null
+        });
+      }
+
+      const options = liveQuestion.optionsJson || [];
+
+      res.json({
+        sessionActive: session.isActive,
+        hasLiveQuestion: true,
+        question: {
+          id: liveQuestion.id,
+          text: liveQuestion.prompt,
+          type: liveQuestion.type,
+          frozen: liveQuestion.isFrozen,
+          options: options.map((opt: string, idx: number) => ({
+            index: idx,
+            label: opt,
+            key: String.fromCharCode(65 + idx) // A, B, C, D...
+          }))
+        }
+      });
+    } catch (error) {
+      console.error("Hardware status error:", error);
+      res.status(500).json({ error: "Failed to get status" });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const parsed = insertUserSchema.safeParse(req.body);
