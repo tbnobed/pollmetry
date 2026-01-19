@@ -27,8 +27,9 @@ RUN npm ci
 # Copy built assets from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy drizzle config and shared schema for migrations
+# Copy drizzle config, migrations, and shared schema
 COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/tsconfig.json ./
 
