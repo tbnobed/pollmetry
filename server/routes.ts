@@ -724,8 +724,8 @@ export async function registerRoutes(
 
         case "reveal":
           updatedQuestion = (await storage.updateQuestionRevealed(data.questionId, true))!;
-          // For closed questions, broadcast the question with tally so overlay can show results
-          if (updatedQuestion.state === "CLOSED") {
+          // Broadcast the question with tally so overlay can show results (for CLOSED or DRAFT/survey mode)
+          if (updatedQuestion.state === "CLOSED" || updatedQuestion.state === "DRAFT") {
             const revealTally = await storage.getVoteTally(data.questionId);
             io.to(`session:${question.sessionId}`).emit("session:current_question", { ...updatedQuestion, tally: revealTally });
           }
@@ -733,8 +733,8 @@ export async function registerRoutes(
 
         case "hide":
           updatedQuestion = (await storage.updateQuestionRevealed(data.questionId, false))!;
-          // For closed questions, hide the overlay
-          if (updatedQuestion.state === "CLOSED") {
+          // Hide from overlay (for CLOSED or DRAFT/survey mode)
+          if (updatedQuestion.state === "CLOSED" || updatedQuestion.state === "DRAFT") {
             io.to(`session:${question.sessionId}`).emit("session:current_question", null);
           }
           break;
