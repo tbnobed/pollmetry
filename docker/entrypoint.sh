@@ -3,8 +3,15 @@ set -e
 
 echo "Checking database state..."
 
-# Check if our tables already exist (from previous drizzle-kit push)
-TABLES_EXIST=$(psql "$DATABASE_URL" -tAc "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'questions');" 2>/dev/null || echo "false")
+# Check if tables exist using Node.js (no need for postgresql-client)
+TABLES_EXIST=$(node -e "
+const { Client } = require('pg');
+const client = new Client({ connectionString: process.env.DATABASE_URL });
+client.connect()
+  .then(() => client.query(\"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'questions')\"))
+  .then(res => { console.log(res.rows[0].exists ? 't' : 'f'); client.end(); })
+  .catch(() => { console.log('f'); client.end(); });
+" 2>/dev/null || echo "f")
 
 echo "Tables exist: $TABLES_EXIST"
 

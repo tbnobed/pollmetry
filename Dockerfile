@@ -20,9 +20,6 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install PostgreSQL client for migration checks
-RUN apk add --no-cache postgresql-client
-
 # Install ALL dependencies (need drizzle-kit for migrations)
 COPY package*.json ./
 RUN npm ci
