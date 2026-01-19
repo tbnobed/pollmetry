@@ -4,6 +4,11 @@
 
 PollMetry.io is a real-time audience polling system designed for livestream and hybrid (in-room + remote) environments. The application enables pollsters to create and manage interactive polling sessions while allowing audiences to participate via short join codes. It features three distinct interfaces: a Producer Console for poll management, an Audience voting interface, and a Dashboard for real-time analytics with segment comparison (room vs remote participants).
 
+### Session Modes
+The application supports two session modes:
+- **Live Polling**: Real-time voting where the pollster controls when each question goes live
+- **Survey Mode**: Self-paced kiosk mode where a single device is shared by multiple participants who answer questions sequentially with auto-advance and thank you screens between participants
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
