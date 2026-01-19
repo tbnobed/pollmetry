@@ -551,6 +551,30 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/sessions/:sessionId/survey/reset", requireAuth, async (req, res) => {
+    try {
+      const session = await storage.getSession(req.params.sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      
+      const user = req.user as User;
+      if (session.createdById !== user.id && !user.isAdmin) {
+        return res.status(403).json({ error: "Not authorized to reset this survey" });
+      }
+      
+      await storage.resetSurvey(req.params.sessionId);
+      
+      // Broadcast to connected clients that the survey was reset
+      io.to(`session:${req.params.sessionId}`).emit("session:reset");
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.patch("/api/sessions/:sessionId/activate", requireAuth, async (req, res) => {
     try {
       const { isActive } = req.body;

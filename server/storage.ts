@@ -56,6 +56,7 @@ export interface IStorage {
   updateSurveyProgress(id: string, questionsAnswered: number): Promise<SurveyCompletion | undefined>;
   completeSurvey(id: string): Promise<SurveyCompletion | undefined>;
   getSurveyStats(sessionId: string): Promise<{ total: number; completed: number; inProgress: number }>;
+  resetSurvey(sessionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -324,6 +325,24 @@ export class DatabaseStorage implements IStorage {
       completed,
       inProgress: completions.length - completed
     };
+  }
+
+  async resetSurvey(sessionId: string): Promise<void> {
+    // Get all questions for this session
+    const sessionQuestions = await this.getQuestionsBySession(sessionId);
+    
+    // Delete all votes for each question
+    for (const question of sessionQuestions) {
+      await db.delete(voteEvents).where(eq(voteEvents.questionId, question.id));
+      // Reset question state
+      await db.update(questions).set({ 
+        isRevealed: false, 
+        isFrozen: false 
+      }).where(eq(questions.id, question.id));
+    }
+    
+    // Delete all survey completions for this session
+    await db.delete(surveyCompletions).where(eq(surveyCompletions.sessionId, sessionId));
   }
 }
 

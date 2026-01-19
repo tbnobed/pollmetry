@@ -119,6 +119,19 @@ export default function SessionManager() {
     },
   });
 
+  const resetSurveyMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/sessions/${sessionId}/survey/reset`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId, "questions"] });
+      toast({ title: "Survey reset - all votes and progress cleared" });
+    },
+    onError: () => {
+      toast({ title: "Failed to reset survey", variant: "destructive" });
+    },
+  });
+
   const editQuestionMutation = useMutation({
     mutationFn: async (data: { questionId: string; type: QuestionType; prompt: string; optionsJson?: string[]; durationSeconds?: number }) => {
       const { questionId, ...updates } = data;
@@ -323,6 +336,26 @@ export default function SessionManager() {
               <BarChart3 className="w-4 h-4 mr-2" />
               Dashboard
             </Button>
+            {session?.mode === "survey" && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to reset this survey? This will delete all votes and participant progress.")) {
+                    resetSurveyMutation.mutate();
+                  }
+                }}
+                disabled={resetSurveyMutation.isPending}
+                data-testid="button-reset-survey"
+              >
+                {resetSurveyMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                )}
+                Reset Survey
+              </Button>
+            )}
             <ThemeToggle />
           </div>
         </div>
