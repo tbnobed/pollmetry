@@ -16,7 +16,37 @@ client.connect()
 echo "Tables exist: $TABLES_EXIST"
 
 if [ "$TABLES_EXIST" = "t" ]; then
-    echo "Existing database detected - skipping migrations (schema already in place)"
+    echo "Existing database detected - syncing any missing columns..."
+    
+    # Add missing columns if they don't exist (handles schema drift)
+    node -e "
+const { Client } = require('pg');
+const client = new Client({ connectionString: process.env.DATABASE_URL });
+
+const migrations = [
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS question_time_limit_seconds integer',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS mode text DEFAULT \\'live\\' NOT NULL',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT false NOT NULL',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS created_by_id varchar',
+  'ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean DEFAULT false NOT NULL'
+];
+
+async function run() {
+  await client.connect();
+  for (const sql of migrations) {
+    try {
+      await client.query(sql);
+      console.log('OK:', sql.substring(0, 60) + '...');
+    } catch (e) {
+      console.log('Skip:', e.message);
+    }
+  }
+  await client.end();
+}
+run();
+" 2>&1
+    
+    echo "Schema sync complete"
 else
     echo "Fresh database - running migrations..."
     npx drizzle-kit migrate
