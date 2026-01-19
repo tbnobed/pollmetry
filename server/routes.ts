@@ -23,7 +23,7 @@ function generateToken(): string {
   return randomBytes(32).toString("hex");
 }
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -37,7 +37,13 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   
+  const user = await storage.getUser(session.userId);
+  if (!user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  
   (req as any).userId = session.userId;
+  req.user = user;
   next();
 }
 
