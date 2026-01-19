@@ -35,8 +35,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-    ports:
-      - "5432:5432"
+    # Database only accessible within Docker network (not exposed to public)
     networks:
       - pollmetry-network
     healthcheck:
