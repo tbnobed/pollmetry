@@ -214,9 +214,12 @@ export default function SessionManager() {
     }
   };
 
-  const getStateBadge = (state: QuestionState) => {
+  const getStateBadge = (state: QuestionState, isSurveyMode: boolean = false) => {
     switch (state) {
       case "DRAFT":
+        if (isSurveyMode) {
+          return <Badge className="bg-chart-2 text-white">Active</Badge>;
+        }
         return <Badge variant="secondary">Draft</Badge>;
       case "LIVE":
         return <Badge className="bg-chart-2 text-white">Live</Badge>;
@@ -445,7 +448,7 @@ export default function SessionManager() {
                       <div>
                         <CardTitle className="text-lg">{question.prompt}</CardTitle>
                         <div className="flex items-center gap-2 mt-2">
-                          {getStateBadge(question.state)}
+                          {getStateBadge(question.state, session?.mode === "survey")}
                           <Badge variant="outline" className="capitalize">{question.type.replace("_", " ")}</Badge>
                           {question.isRevealed && <Badge variant="secondary"><Eye className="w-3 h-3 mr-1" />Revealed</Badge>}
                           {question.isFrozen && <Badge variant="secondary"><Lock className="w-3 h-3 mr-1" />Frozen</Badge>}
