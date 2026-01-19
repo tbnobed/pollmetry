@@ -1,0 +1,119 @@
+tbn@obtv-svr2:~/pollmetry$ docker compose logs -f
+pollmetry-db  | 
+pollmetry-db  | PostgreSQL Database directory appears to contain a database; Skipping initialization
+pollmetry-db  | 
+pollmetry-app  | Checking database migration state...
+pollmetry-db   | 2026-01-19 17:43:18.625 UTC [1] LOG:  starting PostgreSQL 16.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+pollmetry-db   | 2026-01-19 17:43:18.625 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+pollmetry-db   | 2026-01-19 17:43:18.625 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+pollmetry-db   | 2026-01-19 17:43:18.648 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+pollmetry-db   | 2026-01-19 17:43:18.672 UTC [29] LOG:  database system was shut down at 2026-01-19 17:40:05 UTC
+pollmetry-db   | 2026-01-19 17:43:18.695 UTC [1] LOG:  database system is ready to accept connections
+pollmetry-db   | 2026-01-19 17:43:22.221 UTC [33] FATAL:  password authentication failed for user "postgres"
+pollmetry-db   | 2026-01-19 17:43:22.221 UTC [33] DETAIL:  Role "postgres" does not exist.
+pollmetry-db   | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+pollmetry-db   | 2026-01-19 17:43:26.184 UTC [34] FATAL:  password authentication failed for user "postgres"
+pollmetry-db   | 2026-01-19 17:43:26.184 UTC [34] DETAIL:  Role "postgres" does not exist.
+pollmetry-db   | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+pollmetry-db   | 2026-01-19 17:43:32.030 UTC [42] FATAL:  password authentication failed for user "postgres"
+pollmetry-db   | 2026-01-19 17:43:32.030 UTC [42] DETAIL:  Role "postgres" does not exist.
+pollmetry-db   | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+pollmetry-app  | Running database migrations...
+pollmetry-app  | No config path provided, using default 'drizzle.config.ts'
+pollmetry-app  | Reading config file '/app/drizzle.config.ts'
+pollmetry-app  | Using 'pg' driver for database querying
+pollmetry-db   | 2026-01-19 17:43:35.398 UTC [51] ERROR:  relation "questions" already exists
+pollmetry-db   | 2026-01-19 17:43:35.398 UTC [51] STATEMENT:  CREATE TABLE "questions" (
+pollmetry-db   | 		"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+pollmetry-db   | 		"session_id" varchar NOT NULL,
+pollmetry-db   | 		"order" integer NOT NULL,
+pollmetry-db   | 		"type" text NOT NULL,
+pollmetry-db   | 		"prompt" text NOT NULL,
+pollmetry-db   | 		"options_json" jsonb,
+pollmetry-db   | 		"state" text DEFAULT 'DRAFT' NOT NULL,
+pollmetry-db   | 		"is_revealed" boolean DEFAULT false NOT NULL,
+pollmetry-db   | 		"is_frozen" boolean DEFAULT false NOT NULL,
+pollmetry-db   | 		"duration_seconds" integer,
+pollmetry-db   | 		"opened_at" timestamp,
+pollmetry-db   | 		"closed_at" timestamp
+pollmetry-db   | 	);
+pollmetry-db   | 	
+pollmetry-app  | error: relation "questions" already exists
+pollmetry-app  |     at /app/node_modules/pg/lib/client.js:545:17
+pollmetry-app  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+pollmetry-app  |     at async <anonymous> (/app/node_modules/src/pg-core/dialect.ts:102:7)
+pollmetry-app  |     at async NodePgSession.transaction (/app/node_modules/src/node-postgres/session.ts:193:19)
+pollmetry-app  |     at async PgDialect.migrate (/app/node_modules/src/pg-core/dialect.ts:95:3)
+pollmetry-app  |     at async migrate (/app/node_modules/src/node-postgres/migrator.ts:10:2) {
+pollmetry-app  |   length: 103,
+pollmetry-app  |   severity: 'ERROR',
+pollmetry-app  |   code: '42P07',
+pollmetry-app  |   detail: undefined,
+pollmetry-app  |   hint: undefined,
+pollmetry-app  |   position: undefined,
+pollmetry-app  |   internalPosition: undefined,
+pollmetry-app  |   internalQuery: undefined,
+pollmetry-app  |   where: undefined,
+pollmetry-app  |   schema: undefined,
+pollmetry-app  |   table: undefined,
+pollmetry-app  |   column: undefined,
+pollmetry-app  |   dataType: undefined,
+pollmetry-app  |   constraint: undefined,
+pollmetry-app  |   file: 'heap.c',
+pollmetry-app  |   line: '1150',
+pollmetry-app  |   routine: 'heap_create_with_catalog'
+pollmetry-app  | }
+pollmetry-app exited with code 1 (restarting)
+pollmetry-app  | Checking database migration state...
+pollmetry-db   | 2026-01-19 17:43:37.920 UTC [43] FATAL:  password authentication failed for user "postgres"
+pollmetry-db   | 2026-01-19 17:43:37.920 UTC [43] DETAIL:  Role "postgres" does not exist.
+pollmetry-db   | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+pollmetry-db   | 2026-01-19 17:43:44.289 UTC [52] FATAL:  password authentication failed for user "postgres"
+pollmetry-db   | 2026-01-19 17:43:44.289 UTC [52] DETAIL:  Role "postgres" does not exist.
+pollmetry-db   | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+pollmetry-app  | Running database migrations...
+pollmetry-app  | No config path provided, using default 'drizzle.config.ts'
+pollmetry-app  | Reading config file '/app/drizzle.config.ts'
+pollmetry-app  | Using 'pg' driver for database querying
+pollmetry-db   | 2026-01-19 17:43:47.461 UTC [62] ERROR:  relation "questions" already exists
+pollmetry-db   | 2026-01-19 17:43:47.461 UTC [62] STATEMENT:  CREATE TABLE "questions" (
+pollmetry-db   | 		"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+pollmetry-db   | 		"session_id" varchar NOT NULL,
+pollmetry-db   | 		"order" integer NOT NULL,
+pollmetry-db   | 		"type" text NOT NULL,
+pollmetry-db   | 		"prompt" text NOT NULL,
+pollmetry-db   | 		"options_json" jsonb,
+pollmetry-db   | 		"state" text DEFAULT 'DRAFT' NOT NULL,
+pollmetry-db   | 		"is_revealed" boolean DEFAULT false NOT NULL,
+pollmetry-db   | 		"is_frozen" boolean DEFAULT false NOT NULL,
+pollmetry-db   | 		"duration_seconds" integer,
+pollmetry-db   | 		"opened_at" timestamp,
+pollmetry-db   | 		"closed_at" timestamp
+pollmetry-db   | 	);
+pollmetry-db   | 	
+pollmetry-app  | error: relation "questions" already exists
+pollmetry-app  |     at /app/node_modules/pg/lib/client.js:545:17
+pollmetry-app  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+pollmetry-app  |     at async <anonymous> (/app/node_modules/src/pg-core/dialect.ts:102:7)
+pollmetry-app  |     at async NodePgSession.transaction (/app/node_modules/src/node-postgres/session.ts:193:19)
+pollmetry-app  |     at async PgDialect.migrate (/app/node_modules/src/pg-core/dialect.ts:95:3)
+pollmetry-app  |     at async migrate (/app/node_modules/src/node-postgres/migrator.ts:10:2) {
+pollmetry-app  |   length: 103,
+pollmetry-app  |   severity: 'ERROR',
+pollmetry-app  |   code: '42P07',
+pollmetry-app  |   detail: undefined,
+pollmetry-app  |   hint: undefined,
+pollmetry-app  |   position: undefined,
+pollmetry-app  |   internalPosition: undefined,
+pollmetry-app  |   internalQuery: undefined,
+pollmetry-app  |   where: undefined,
+pollmetry-app  |   schema: undefined,
+pollmetry-app  |   table: undefined,
+pollmetry-app  |   column: undefined,
+pollmetry-app  |   dataType: undefined,
+pollmetry-app  |   constraint: undefined,
+pollmetry-app  |   file: 'heap.c',
+pollmetry-app  |   line: '1150',
+pollmetry-app  |   routine: 'heap_create_with_catalog'
+pollmetry-app  | }
+pollmetry-app exited with code 1 (restarting)

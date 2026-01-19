@@ -4,15 +4,17 @@ set -e
 echo "Checking database migration state..."
 
 # Check if drizzle migrations table exists
-MIGRATIONS_TABLE_EXISTS=$(PGPASSWORD=$PGPASSWORD psql -h $PGHOST -U $PGUSER -d $PGDATABASE -tAc "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '__drizzle_migrations');" 2>/dev/null || echo "false")
+MIGRATIONS_TABLE_EXISTS=$(psql "$DATABASE_URL" -tAc "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '__drizzle_migrations');" 2>/dev/null || echo "false")
 
 # Check if our tables already exist (from previous drizzle-kit push)
-TABLES_EXIST=$(PGPASSWORD=$PGPASSWORD psql -h $PGHOST -U $PGUSER -d $PGDATABASE -tAc "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'questions');" 2>/dev/null || echo "false")
+TABLES_EXIST=$(psql "$DATABASE_URL" -tAc "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'questions');" 2>/dev/null || echo "false")
+
+echo "Tables exist: $TABLES_EXIST, Migrations table exists: $MIGRATIONS_TABLE_EXISTS"
 
 if [ "$TABLES_EXIST" = "t" ] && [ "$MIGRATIONS_TABLE_EXISTS" != "t" ]; then
     echo "Existing database detected - marking initial migration as applied..."
     # Create migrations table and mark initial migration as done
-    PGPASSWORD=$PGPASSWORD psql -h $PGHOST -U $PGUSER -d $PGDATABASE <<EOF
+    psql "$DATABASE_URL" <<EOF
 CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
     id SERIAL PRIMARY KEY,
     hash text NOT NULL,
