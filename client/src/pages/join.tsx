@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Users, Globe, Home, Loader2 } from "lucide-react";
+import { Users, Globe, Home, Loader2, ClipboardList } from "lucide-react";
 import { VotingInterface } from "@/components/voting-interface";
 import type { Session, QuestionWithTally, Segment } from "@shared/schema";
 import { getSocket, connectSocket, setSegment } from "@/lib/socket";
@@ -31,6 +31,12 @@ export default function Join() {
 
   useEffect(() => {
     if (!session) return;
+
+    // Redirect to survey page if session is in survey mode
+    if (session.mode === "survey") {
+      setLocation(`/survey/${code}?segment=${segment}`);
+      return;
+    }
 
     const socket = connectSocket(segment);
     const voterToken = getVoterToken();

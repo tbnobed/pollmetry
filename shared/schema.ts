@@ -14,11 +14,16 @@ export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
 }));
 
+export const sessionModeEnum = z.enum(["live", "survey"]);
+export type SessionMode = z.infer<typeof sessionModeEnum>;
+
 export const sessions = pgTable("sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   code: varchar("code", { length: 6 }).notNull().unique(),
   name: text("name").notNull(),
+  mode: text("mode").notNull().$type<SessionMode>().default("live"),
   broadcastDelaySeconds: integer("broadcast_delay_seconds").default(0).notNull(),
+  questionTimeLimitSeconds: integer("question_time_limit_seconds"),
   createdById: varchar("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -91,6 +96,25 @@ export const voteEventsRelations = relations(voteEvents, ({ one }) => ({
   }),
 }));
 
+export const surveyCompletions = pgTable("survey_completions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").references(() => sessions.id).notNull(),
+  participantToken: text("participant_token").notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  questionsAnswered: integer("questions_answered").default(0).notNull(),
+  totalQuestions: integer("total_questions").notNull(),
+}, (table) => [
+  index("survey_completions_session_id_idx").on(table.sessionId),
+]);
+
+export const surveyCompletionsRelations = relations(surveyCompletions, ({ one }) => ({
+  session: one(sessions, {
+    fields: [surveyCompletions.sessionId],
+    references: [sessions.id],
+  }),
+}));
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -98,7 +122,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export const insertSessionSchema = createInsertSchema(sessions).pick({
   name: true,
+  mode: true,
   broadcastDelaySeconds: true,
+  questionTimeLimitSeconds: true,
+});
+
+export const insertSurveyCompletionSchema = createInsertSchema(surveyCompletions).pick({
+  sessionId: true,
+  participantToken: true,
+  totalQuestions: true,
 });
 
 export const insertQuestionSchema = createInsertSchema(questions).pick({
@@ -129,6 +161,9 @@ export type Question = typeof questions.$inferSelect;
 
 export type InsertVoteEvent = z.infer<typeof insertVoteEventSchema>;
 export type VoteEvent = typeof voteEvents.$inferSelect;
+
+export type InsertSurveyCompletion = z.infer<typeof insertSurveyCompletionSchema>;
+export type SurveyCompletion = typeof surveyCompletions.$inferSelect;
 
 export interface VotePayloadMultipleChoice {
   optionId: number;

@@ -1,10 +1,11 @@
 import { 
-  users, sessions, questions, voteEvents,
+  users, sessions, questions, voteEvents, surveyCompletions,
   type User, type InsertUser, 
   type Session, type InsertSession,
   type Question, type InsertQuestion,
   type VoteEvent, type InsertVoteEvent,
-  type VoteTally, type QuestionState, type Segment
+  type SurveyCompletion, type InsertSurveyCompletion,
+  type VoteTally, type QuestionState, type Segment, type SessionMode
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, count, avg } from "drizzle-orm";
@@ -47,6 +48,13 @@ export interface IStorage {
   hasVoted(questionId: string, voterTokenHash: string): Promise<boolean>;
   getVoteTally(questionId: string): Promise<VoteTally>;
   getVotesPerSecond(questionId: string, windowSeconds: number): Promise<number>;
+  
+  createSurveyCompletion(completion: InsertSurveyCompletion): Promise<SurveyCompletion>;
+  getSurveyCompletion(id: string): Promise<SurveyCompletion | undefined>;
+  getSurveyCompletionsBySession(sessionId: string): Promise<SurveyCompletion[]>;
+  updateSurveyProgress(id: string, questionsAnswered: number): Promise<SurveyCompletion | undefined>;
+  completeSurvey(id: string): Promise<SurveyCompletion | undefined>;
+  getSurveyStats(sessionId: string): Promise<{ total: number; completed: number; inProgress: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -87,7 +95,10 @@ export class DatabaseStorage implements IStorage {
     }
 
     const [session] = await db.insert(sessions).values({
-      ...insertSession,
+      name: insertSession.name,
+      mode: (insertSession.mode || "live") as SessionMode,
+      broadcastDelaySeconds: insertSession.broadcastDelaySeconds || 0,
+      questionTimeLimitSeconds: insertSession.questionTimeLimitSeconds,
       code,
       createdById,
     }).returning();
@@ -113,6 +124,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSession(id: string): Promise<void> {
+    // Delete all survey completions for this session
+    await db.delete(surveyCompletions).where(eq(surveyCompletions.sessionId, id));
     // Delete all vote events for this session
     await db.delete(voteEvents).where(eq(voteEvents.sessionId, id));
     // Delete all questions for this session
@@ -126,8 +139,12 @@ export class DatabaseStorage implements IStorage {
     const order = existingQuestions.length + 1;
 
     const [question] = await db.insert(questions).values({
-      ...insertQuestion,
+      sessionId: insertQuestion.sessionId,
       order,
+      type: insertQuestion.type as "multiple_choice" | "slider" | "emoji",
+      prompt: insertQuestion.prompt,
+      optionsJson: insertQuestion.optionsJson as string[] | undefined,
+      durationSeconds: insertQuestion.durationSeconds,
     }).returning();
     return question;
   }
@@ -189,7 +206,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createVoteEvent(insertVote: InsertVoteEvent): Promise<VoteEvent> {
-    const [vote] = await db.insert(voteEvents).values(insertVote).returning();
+    const [vote] = await db.insert(voteEvents).values({
+      sessionId: insertVote.sessionId,
+      questionId: insertVote.questionId,
+      voterTokenHash: insertVote.voterTokenHash,
+      segment: insertVote.segment as "room" | "remote",
+      payloadJson: insertVote.payloadJson,
+    }).returning();
     return vote;
   }
 
@@ -252,6 +275,46 @@ export class DatabaseStorage implements IStorage {
         sql`${voteEvents.createdAt} > ${cutoff}`
       ));
     return ((result?.count || 0) / windowSeconds);
+  }
+
+  async createSurveyCompletion(completion: InsertSurveyCompletion): Promise<SurveyCompletion> {
+    const [result] = await db.insert(surveyCompletions).values(completion).returning();
+    return result;
+  }
+
+  async getSurveyCompletion(id: string): Promise<SurveyCompletion | undefined> {
+    const [result] = await db.select().from(surveyCompletions).where(eq(surveyCompletions.id, id));
+    return result || undefined;
+  }
+
+  async getSurveyCompletionsBySession(sessionId: string): Promise<SurveyCompletion[]> {
+    return db.select().from(surveyCompletions).where(eq(surveyCompletions.sessionId, sessionId)).orderBy(desc(surveyCompletions.startedAt));
+  }
+
+  async updateSurveyProgress(id: string, questionsAnswered: number): Promise<SurveyCompletion | undefined> {
+    const [result] = await db.update(surveyCompletions)
+      .set({ questionsAnswered })
+      .where(eq(surveyCompletions.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  async completeSurvey(id: string): Promise<SurveyCompletion | undefined> {
+    const [result] = await db.update(surveyCompletions)
+      .set({ completedAt: new Date() })
+      .where(eq(surveyCompletions.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  async getSurveyStats(sessionId: string): Promise<{ total: number; completed: number; inProgress: number }> {
+    const completions = await this.getSurveyCompletionsBySession(sessionId);
+    const completed = completions.filter(c => c.completedAt !== null).length;
+    return {
+      total: completions.length,
+      completed,
+      inProgress: completions.length - completed
+    };
   }
 }
 

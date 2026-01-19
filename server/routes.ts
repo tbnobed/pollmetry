@@ -400,6 +400,134 @@ export async function registerRoutes(
     }
   });
 
+  // Survey Mode Endpoints
+  app.post("/api/sessions/:sessionId/survey/start", async (req, res) => {
+    try {
+      const session = await storage.getSession(req.params.sessionId);
+      if (!session || session.mode !== "survey") {
+        return res.status(404).json({ error: "Survey session not found" });
+      }
+
+      const questions = await storage.getQuestionsBySession(req.params.sessionId);
+      const participantToken = req.body.participantToken;
+
+      if (!participantToken) {
+        return res.status(400).json({ error: "Participant token required" });
+      }
+
+      const completion = await storage.createSurveyCompletion({
+        sessionId: req.params.sessionId,
+        participantToken,
+        totalQuestions: questions.length,
+      });
+
+      res.json({
+        surveyId: completion.id,
+        questions: questions.map(q => ({
+          id: q.id,
+          order: q.order,
+          type: q.type,
+          prompt: q.prompt,
+          optionsJson: q.optionsJson,
+        })),
+        timeLimit: session.questionTimeLimitSeconds,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/sessions/:sessionId/survey/vote", async (req, res) => {
+    try {
+      const { surveyId, questionId, payload, voterToken, segment } = req.body;
+
+      const completion = await storage.getSurveyCompletion(surveyId);
+      if (!completion || completion.completedAt) {
+        return res.status(400).json({ error: "Invalid or completed survey" });
+      }
+
+      const question = await storage.getQuestion(questionId);
+      if (!question || question.sessionId !== req.params.sessionId) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+
+      // Check if already voted on this question in this survey session
+      const hasVoted = await storage.hasVoted(questionId, voterToken);
+      if (hasVoted) {
+        return res.status(400).json({ error: "Already voted on this question" });
+      }
+
+      await storage.createVoteEvent({
+        sessionId: req.params.sessionId,
+        questionId,
+        voterTokenHash: voterToken,
+        segment: segment || "room",
+        payloadJson: payload,
+      });
+
+      // Update progress
+      const newProgress = completion.questionsAnswered + 1;
+      await storage.updateSurveyProgress(surveyId, newProgress);
+
+      res.json({ success: true, questionsAnswered: newProgress });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/sessions/:sessionId/survey/complete", async (req, res) => {
+    try {
+      const { surveyId } = req.body;
+
+      const completion = await storage.getSurveyCompletion(surveyId);
+      if (!completion) {
+        return res.status(404).json({ error: "Survey not found" });
+      }
+
+      await storage.completeSurvey(surveyId);
+
+      // Emit real-time update to pollsters
+      io.to(`pollster:${req.params.sessionId}`).emit("survey:completed", {
+        surveyId,
+        questionsAnswered: completion.questionsAnswered,
+        totalQuestions: completion.totalQuestions,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/sessions/:sessionId/survey/stats", requireAuth, async (req, res) => {
+    try {
+      const stats = await storage.getSurveyStats(req.params.sessionId);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/sessions/:sessionId/survey/results", requireAuth, async (req, res) => {
+    try {
+      const questions = await storage.getQuestionsBySession(req.params.sessionId);
+      const results = [];
+      
+      for (const question of questions) {
+        const tally = await storage.getVoteTally(question.id);
+        results.push({
+          question,
+          tally,
+        });
+      }
+      
+      const stats = await storage.getSurveyStats(req.params.sessionId);
+      res.json({ results, stats });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const io = new SocketIOServer(httpServer, {
     cors: {
       origin: "*",

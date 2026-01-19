@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users, Trash2 } from "lucide-react";
+import { Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users, Trash2, ClipboardList, Radio } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
-import type { Session } from "@shared/schema";
+import type { Session, SessionMode } from "@shared/schema";
 
 type SessionWithCreator = Session & { creatorUsername?: string };
 
@@ -20,7 +21,9 @@ export default function Console() {
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [sessionName, setSessionName] = useState("");
+  const [sessionMode, setSessionMode] = useState<SessionMode>("live");
   const [broadcastDelay, setBroadcastDelay] = useState(0);
+  const [questionTimeLimit, setQuestionTimeLimit] = useState<number | undefined>(undefined);
 
   const { data: user, isLoading: userLoading } = useQuery<{ id: string; username: string; isAdmin: boolean }>({
     queryKey: ["/api/auth/me"],
@@ -32,7 +35,12 @@ export default function Console() {
   });
 
   const createSessionMutation = useMutation({
-    mutationFn: async (data: { name: string; broadcastDelaySeconds: number }) => {
+    mutationFn: async (data: { 
+      name: string; 
+      mode: SessionMode;
+      broadcastDelaySeconds: number;
+      questionTimeLimitSeconds?: number;
+    }) => {
       const response = await apiRequest("POST", "/api/sessions", data);
       return response.json();
     },
@@ -40,7 +48,9 @@ export default function Console() {
       queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
       setCreateDialogOpen(false);
       setSessionName("");
+      setSessionMode("live");
       setBroadcastDelay(0);
+      setQuestionTimeLimit(undefined);
       toast({ title: "Session created", description: `Code: ${session.code}` });
       setLocation(`/console/${session.id}`);
     },
@@ -75,7 +85,12 @@ export default function Console() {
 
   const handleCreateSession = (e: React.FormEvent) => {
     e.preventDefault();
-    createSessionMutation.mutate({ name: sessionName, broadcastDelaySeconds: broadcastDelay });
+    createSessionMutation.mutate({ 
+      name: sessionName, 
+      mode: sessionMode,
+      broadcastDelaySeconds: broadcastDelay,
+      questionTimeLimitSeconds: sessionMode === "survey" ? questionTimeLimit : undefined,
+    });
   };
 
   const copyCode = (code: string) => {
@@ -177,21 +192,71 @@ export default function Console() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="broadcastDelay">Broadcast Delay (seconds)</Label>
-                  <Input
-                    id="broadcastDelay"
-                    type="number"
-                    min={0}
-                    max={300}
-                    placeholder="0"
-                    value={broadcastDelay}
-                    onChange={(e) => setBroadcastDelay(parseInt(e.target.value) || 0)}
-                    data-testid="input-broadcast-delay"
-                  />
+                  <Label>Session Type</Label>
+                  <Select
+                    value={sessionMode}
+                    onValueChange={(value: SessionMode) => setSessionMode(value)}
+                  >
+                    <SelectTrigger data-testid="select-session-mode">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="live">
+                        <div className="flex items-center gap-2">
+                          <Radio className="w-4 h-4" />
+                          <span>Live Polling</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="survey">
+                        <div className="flex items-center gap-2">
+                          <ClipboardList className="w-4 h-4" />
+                          <span>Survey Mode</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    Used for time-aligned analytics on the dashboard
+                    {sessionMode === "live" 
+                      ? "Real-time polling where you control when questions go live" 
+                      : "Self-paced survey where participants answer all questions sequentially"}
                   </p>
                 </div>
+                {sessionMode === "live" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="broadcastDelay">Broadcast Delay (seconds)</Label>
+                    <Input
+                      id="broadcastDelay"
+                      type="number"
+                      min={0}
+                      max={300}
+                      placeholder="0"
+                      value={broadcastDelay}
+                      onChange={(e) => setBroadcastDelay(parseInt(e.target.value) || 0)}
+                      data-testid="input-broadcast-delay"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Used for time-aligned analytics on the dashboard
+                    </p>
+                  </div>
+                )}
+                {sessionMode === "survey" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="questionTimeLimit">Time Limit per Question (seconds)</Label>
+                    <Input
+                      id="questionTimeLimit"
+                      type="number"
+                      min={0}
+                      max={600}
+                      placeholder="No limit"
+                      value={questionTimeLimit ?? ""}
+                      onChange={(e) => setQuestionTimeLimit(e.target.value ? parseInt(e.target.value) : undefined)}
+                      data-testid="input-question-time-limit"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty for no time limit. Participants will auto-advance when time expires.
+                    </p>
+                  </div>
+                )}
                 <Button 
                   type="submit" 
                   className="w-full"
@@ -219,7 +284,16 @@ export default function Console() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <CardTitle className="text-lg">{session.name}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">{session.name}</CardTitle>
+                        <Badge variant={session.mode === "survey" ? "default" : "secondary"}>
+                          {session.mode === "survey" ? (
+                            <><ClipboardList className="w-3 h-3 mr-1" />Survey</>
+                          ) : (
+                            <><Radio className="w-3 h-3 mr-1" />Live</>
+                          )}
+                        </Badge>
+                      </div>
                       <CardDescription className="mt-1">
                         Created {new Date(session.createdAt).toLocaleDateString()}
                         {user?.isAdmin && session.creatorUsername && (

@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Join from "@/pages/join";
+import Survey from "@/pages/survey";
 import Console from "@/pages/console";
 import SessionManager from "@/pages/session-manager";
 import Dashboard from "@/pages/dashboard";
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/join/:code" component={Join} />
+      <Route path="/survey/:code" component={Survey} />
       <Route path="/console" component={Console} />
       <Route path="/console/:id" component={SessionManager} />
       <Route path="/dashboard/:id" component={Dashboard} />
