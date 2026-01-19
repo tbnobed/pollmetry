@@ -50,6 +50,12 @@ export default function Dashboard() {
     refetchInterval: 5000,
   });
 
+  const { data: surveyResults } = useQuery<{ results: Array<{ question: QuestionWithTally; tally: VoteTally }>; stats: any }>({
+    queryKey: ["/api/sessions", sessionId, "survey", "results"],
+    enabled: !!sessionId && session?.mode === "survey",
+    refetchInterval: 5000,
+  });
+
   useEffect(() => {
     if (!session) return;
 
@@ -253,7 +259,127 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        {!currentQuestion || currentQuestion.state !== "LIVE" ? (
+        {session.mode === "survey" ? (
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              {surveyResults?.results && surveyResults.results.length > 0 ? (
+                surveyResults.results.map(({ question, tally }, idx) => {
+                  const totalVotes = tally?.total || 0;
+                  return (
+                    <Card key={question.id}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                          <div>
+                            <Badge variant="secondary" className="mb-2">Q{idx + 1}</Badge>
+                            <CardTitle className="text-lg">{question.prompt}</CardTitle>
+                          </div>
+                          <Badge variant="outline">{totalVotes} responses</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {question.type === "multiple_choice" && question.optionsJson && (
+                          <div className="space-y-3">
+                            {(question.optionsJson as string[]).map((label, optIdx) => {
+                              const votes = tally?.byOption?.[optIdx.toString()] || 0;
+                              const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
+                              return (
+                                <div key={optIdx}>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-medium text-sm">{label}</span>
+                                    <span className="text-sm font-mono">
+                                      {Math.round(percentage)}% ({votes})
+                                    </span>
+                                  </div>
+                                  <div className="h-6 rounded bg-muted overflow-hidden">
+                                    <div
+                                      className="h-full bg-primary transition-all duration-300"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {question.type === "emoji" && (
+                          <div className="flex flex-wrap gap-4 justify-center">
+                            {["👍", "❤️", "😂", "😮", "😢", "👎"].map((emoji) => {
+                              const votes = tally?.byOption?.[emoji] || 0;
+                              const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
+                              return (
+                                <div key={emoji} className="text-center">
+                                  <div className="text-3xl mb-1">{emoji}</div>
+                                  <div className="text-sm font-mono">{Math.round(percentage)}%</div>
+                                  <div className="text-xs text-muted-foreground">({votes})</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {question.type === "slider" && tally && (
+                          <div className="text-center py-4">
+                            <div className="text-4xl font-bold font-mono mb-2">
+                              {Math.round((tally as any).average || 0)}
+                            </div>
+                            <p className="text-muted-foreground text-sm">Average Value</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              ) : (
+                <Card>
+                  <CardContent className="pt-8 pb-8 text-center">
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                      <ClipboardList className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <h2 className="text-xl font-semibold mb-2">No Questions Yet</h2>
+                    <p className="text-muted-foreground">
+                      Add questions to your survey to see results here.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <ClipboardList className="w-5 h-5" />
+                    Survey Progress
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-center">
+                    <div className="text-5xl font-bold font-mono">
+                      {surveyStats?.completed || 0}
+                    </div>
+                    <p className="text-muted-foreground text-sm">Completed Surveys</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 rounded-lg bg-muted">
+                      <div className="text-sm text-muted-foreground mb-1">In Progress</div>
+                      <div className="text-xl font-bold font-mono">{surveyStats?.inProgress || 0}</div>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-muted">
+                      <div className="text-sm text-muted-foreground mb-1">Questions</div>
+                      <div className="text-xl font-bold font-mono">{surveyResults?.results?.length || 0}</div>
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <Badge 
+                      variant={session.isActive ? "default" : "outline"} 
+                      className={`w-full justify-center py-2 ${session.isActive ? "bg-green-600" : ""}`}
+                    >
+                      {session.isActive ? "Survey Open" : "Survey Closed"}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : !currentQuestion || currentQuestion.state !== "LIVE" ? (
           <Card className="max-w-2xl mx-auto">
             <CardContent className="pt-8 pb-8 text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
@@ -433,35 +559,6 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
-
-              {session.mode === "survey" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <ClipboardList className="w-5 h-5" />
-                      Survey Progress
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-center">
-                      <div className="text-5xl font-bold font-mono">
-                        {surveyStats?.completed || 0}
-                      </div>
-                      <p className="text-muted-foreground text-sm">Completed Surveys</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-3 rounded-lg bg-muted">
-                        <div className="text-sm text-muted-foreground mb-1">In Progress</div>
-                        <div className="text-xl font-bold font-mono">{surveyStats?.inProgress || 0}</div>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted">
-                        <div className="text-sm text-muted-foreground mb-1">Questions</div>
-                        <div className="text-xl font-bold font-mono">{questions?.length || 0}</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               <Card className={integrityWarning ? "border-destructive border-2" : ""}>
                 <CardHeader className="pb-3">
