@@ -55,10 +55,11 @@ export default function Overlay() {
     };
   }, [session, code]);
 
-  // Show overlay for LIVE questions, or CLOSED questions that are revealed
+  // Show overlay for LIVE questions, CLOSED questions that are revealed, or DRAFT questions that are revealed (survey mode)
   const shouldShow = currentQuestion && (
     currentQuestion.state === "LIVE" || 
-    (currentQuestion.state === "CLOSED" && currentQuestion.isRevealed)
+    (currentQuestion.state === "CLOSED" && currentQuestion.isRevealed) ||
+    (currentQuestion.state === "DRAFT" && currentQuestion.isRevealed)
   );
 
   if (!shouldShow) {

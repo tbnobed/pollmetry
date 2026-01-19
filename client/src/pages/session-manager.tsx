@@ -466,7 +466,49 @@ export default function SessionManager() {
                     </div>
                   )}
                   <div className="flex flex-wrap gap-2">
-                    {question.state === "DRAFT" && (
+                    {question.state === "DRAFT" && session?.mode === "survey" && (
+                      <>
+                        {!question.isRevealed ? (
+                          <Button
+                            size="sm"
+                            onClick={() => controlQuestionMutation.mutate({ questionId: question.id, action: "reveal" })}
+                            data-testid={`button-reveal-survey-${question.id}`}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Show on Overlay
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => controlQuestionMutation.mutate({ questionId: question.id, action: "hide" })}
+                            data-testid={`button-hide-survey-${question.id}`}
+                          >
+                            <EyeOff className="w-4 h-4 mr-2" />
+                            Hide from Overlay
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditDialog(question)}
+                          data-testid={`button-edit-${question.id}`}
+                        >
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteQuestionMutation.mutate(question.id)}
+                          data-testid={`button-delete-${question.id}`}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                    {question.state === "DRAFT" && session?.mode !== "survey" && (
                       <>
                         <Button
                           size="sm"
