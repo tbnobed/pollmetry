@@ -208,7 +208,7 @@ export async function registerRoutes(
         // Add creator username for admin view
         const sessionsWithCreator = await Promise.all(
           sessions.map(async (session) => {
-            const creator = await storage.getUser(session.createdById);
+            const creator = session.createdById ? await storage.getUser(session.createdById) : null;
             return { ...session, creatorUsername: creator?.username || "Unknown" };
           })
         );

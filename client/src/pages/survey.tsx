@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,27 +92,7 @@ export default function Survey() {
     },
   });
 
-  useEffect(() => {
-    if (timeRemaining === null || timeRemaining <= 0) return;
-
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev === null || prev <= 1) {
-          handleNextQuestion();
-          return surveyData?.timeLimit || null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeRemaining, surveyData]);
-
-  const handleStartSurvey = () => {
-    const token = uuidv4();
-    setVoterToken(token);
-    startSurveyMutation.mutate(token);
-  };
+  const handleNextQuestionRef = useRef<() => Promise<void>>();
 
   const handleNextQuestion = useCallback(async () => {
     if (!surveyData) return;
@@ -142,6 +122,32 @@ export default function Survey() {
       await completeSurveyMutation.mutateAsync();
     }
   }, [surveyData, currentQuestionIndex, selectedOption, sliderValue]);
+
+  useEffect(() => {
+    handleNextQuestionRef.current = handleNextQuestion;
+  }, [handleNextQuestion]);
+
+  useEffect(() => {
+    if (timeRemaining === null || timeRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev === null || prev <= 1) {
+          handleNextQuestionRef.current?.();
+          return surveyData?.timeLimit || null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeRemaining, surveyData?.timeLimit]);
+
+  const handleStartSurvey = () => {
+    const token = uuidv4();
+    setVoterToken(token);
+    startSurveyMutation.mutate(token);
+  };
 
   const handleRestart = () => {
     setSurveyState("start");

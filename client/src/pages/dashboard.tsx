@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   ArrowLeft, Users, TrendingUp, AlertTriangle, 
-  Loader2, Home, Globe, BarChart3, Activity
+  Loader2, Home, Globe, BarChart3, Activity, ClipboardList
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { connectSocket } from "@/lib/socket";
@@ -41,6 +42,12 @@ export default function Dashboard() {
     queryKey: ["/api/sessions", sessionId, "questions"],
     enabled: !!sessionId,
     refetchInterval: 2000,
+  });
+
+  const { data: surveyStats } = useQuery<{ total: number; completed: number; inProgress: number }>({
+    queryKey: ["/api/sessions", sessionId, "survey", "stats"],
+    enabled: !!sessionId && session?.mode === "survey",
+    refetchInterval: 5000,
   });
 
   useEffect(() => {
@@ -103,11 +110,16 @@ export default function Dashboard() {
       });
     });
 
+    socket.on("survey:completed", () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId, "survey", "stats"] });
+    });
+
     return () => {
       socket.off("connect");
       socket.off("session:current_question");
       socket.off("session:results");
       socket.off("session:question_state");
+      socket.off("survey:completed");
       socket.disconnect();
     };
   }, [session, sessionId]);
@@ -421,6 +433,35 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
+
+              {session.mode === "survey" && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <ClipboardList className="w-5 h-5" />
+                      Survey Progress
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-center">
+                      <div className="text-5xl font-bold font-mono">
+                        {surveyStats?.completed || 0}
+                      </div>
+                      <p className="text-muted-foreground text-sm">Completed Surveys</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-3 rounded-lg bg-muted">
+                        <div className="text-sm text-muted-foreground mb-1">In Progress</div>
+                        <div className="text-xl font-bold font-mono">{surveyStats?.inProgress || 0}</div>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-muted">
+                        <div className="text-sm text-muted-foreground mb-1">Questions</div>
+                        <div className="text-xl font-bold font-mono">{questions?.length || 0}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className={integrityWarning ? "border-destructive border-2" : ""}>
                 <CardHeader className="pb-3">
