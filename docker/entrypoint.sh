@@ -28,7 +28,17 @@ const migrations = [
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS mode text DEFAULT \\'live\\' NOT NULL',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT false NOT NULL',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS created_by_id varchar',
-  'ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean DEFAULT false NOT NULL'
+  'ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean DEFAULT false NOT NULL',
+  \`CREATE TABLE IF NOT EXISTS survey_completions (
+    id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id varchar NOT NULL REFERENCES sessions(id),
+    participant_token text NOT NULL,
+    started_at timestamp DEFAULT now() NOT NULL,
+    completed_at timestamp,
+    questions_answered integer DEFAULT 0 NOT NULL,
+    total_questions integer NOT NULL
+  )\`,
+  'CREATE INDEX IF NOT EXISTS survey_completions_session_id_idx ON survey_completions(session_id)'
 ];
 
 async function run() {
