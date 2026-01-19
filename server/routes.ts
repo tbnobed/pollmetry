@@ -232,6 +232,7 @@ export async function registerRoutes(
         res.json(sessions);
       }
     } catch (error) {
+      console.error("Error fetching sessions:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

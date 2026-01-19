@@ -1,0 +1,18 @@
+tbn@obtv-svr2:~/pollmetry$ docker compose build --no-cache
+[+] Building 850.5s (11/21)                                                                                                                                                                               
+ => [internal] load local bake definitions                                                                                                                                                           0.0s
+ => => reading from stdin 506B                                                                                                                                                                       0.0s
+ => [internal] load build definition from Dockerfile                                                                                                                                                 0.1s
+ => => transferring dockerfile: 1.29kB                                                                                                                                                               0.0s
+ => [internal] load metadata for docker.io/library/node:20-alpine                                                                                                                                    0.5s
+ => [internal] load .dockerignore                                                                                                                                                                    0.1s
+ => => transferring context: 530B                                                                                                                                                                    0.0s
+ => [internal] load build context                                                                                                                                                                    0.1s
+ => => transferring context: 75.67kB                                                                                                                                                                 0.0s
+ => [builder 1/6] FROM docker.io/library/node:20-alpine@sha256:3960ed74dfe320a67bf8da9555b6bade25ebda2b22b6081d2f60fd7d5d430e9c                                                                      0.0s
+ => CACHED [builder 2/6] WORKDIR /app                                                                                                                                                                0.0s
+ => [production  3/12] RUN apk add --no-cache postgresql-client                                                                                                                                    849.6s
+ => [builder 3/6] COPY package*.json ./                                                                                                                                                              0.3s
+ => [builder 4/6] RUN npm ci                                                                                                                                                                        10.4s
+ => [builder 5/6] COPY . .                                                                                                                                                                           0.3s 
+ => [builder 6/6] RUN npm run build   
