@@ -33,6 +33,7 @@ export interface IStorage {
   getSessionsByUser(userId: string): Promise<Session[]>;
   getAllSessions(): Promise<Session[]>;
   deleteSession(id: string): Promise<void>;
+  updateSessionActive(id: string, isActive: boolean): Promise<Session | undefined>;
   
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestion(id: string): Promise<Question | undefined>;
@@ -132,6 +133,14 @@ export class DatabaseStorage implements IStorage {
     await db.delete(questions).where(eq(questions.sessionId, id));
     // Delete the session
     await db.delete(sessions).where(eq(sessions.id, id));
+  }
+
+  async updateSessionActive(id: string, isActive: boolean): Promise<Session | undefined> {
+    const [session] = await db.update(sessions)
+      .set({ isActive })
+      .where(eq(sessions.id, id))
+      .returning();
+    return session || undefined;
   }
 
   async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {

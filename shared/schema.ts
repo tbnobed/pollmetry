@@ -22,6 +22,7 @@ export const sessions = pgTable("sessions", {
   code: varchar("code", { length: 6 }).notNull().unique(),
   name: text("name").notNull(),
   mode: text("mode").notNull().$type<SessionMode>().default("live"),
+  isActive: boolean("is_active").default(false).notNull(),
   broadcastDelaySeconds: integer("broadcast_delay_seconds").default(0).notNull(),
   questionTimeLimitSeconds: integer("question_time_limit_seconds"),
   createdById: varchar("created_by_id").references(() => users.id),

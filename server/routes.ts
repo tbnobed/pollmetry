@@ -2,8 +2,16 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { storage } from "./storage";
-import { insertUserSchema, insertSessionSchema, insertQuestionSchema, type QuestionState } from "@shared/schema";
+import { insertUserSchema, insertSessionSchema, insertQuestionSchema, type QuestionState, type User } from "@shared/schema";
 import { createHash, randomBytes } from "crypto";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
 
 const authTokens = new Map<string, { userId: string; expiresAt: number }>();
 
@@ -408,6 +416,10 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Survey session not found" });
       }
 
+      if (!session.isActive) {
+        return res.status(403).json({ error: "This survey is closed" });
+      }
+
       const questions = await storage.getQuestionsBySession(req.params.sessionId);
       const participantToken = req.body.participantToken;
 
@@ -440,6 +452,11 @@ export async function registerRoutes(
   app.post("/api/sessions/:sessionId/survey/vote", async (req, res) => {
     try {
       const { surveyId, questionId, payload, voterToken, segment } = req.body;
+
+      const session = await storage.getSession(req.params.sessionId);
+      if (!session || !session.isActive) {
+        return res.status(403).json({ error: "This survey is closed" });
+      }
 
       const completion = await storage.getSurveyCompletion(surveyId);
       if (!completion || completion.completedAt) {
@@ -523,6 +540,32 @@ export async function registerRoutes(
       
       const stats = await storage.getSurveyStats(req.params.sessionId);
       res.json({ results, stats });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/sessions/:sessionId/activate", requireAuth, async (req, res) => {
+    try {
+      const { isActive } = req.body;
+      
+      if (typeof isActive !== "boolean") {
+        return res.status(400).json({ error: "isActive must be a boolean" });
+      }
+      
+      const session = await storage.getSession(req.params.sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      
+      const user = req.user as User;
+      if (session.createdById !== user.id && !user.isAdmin) {
+        return res.status(403).json({ error: "Not authorized to modify this session" });
+      }
+      
+      const updatedSession = await storage.updateSessionActive(req.params.sessionId, isActive);
+      res.json({ success: true, session: updatedSession });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }

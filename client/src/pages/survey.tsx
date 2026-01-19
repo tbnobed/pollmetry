@@ -206,6 +206,48 @@ export default function Survey() {
     );
   }
 
+  if (!session.isActive) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
+            <button 
+              onClick={() => setLocation("/")}
+              className="flex items-center gap-3"
+              data-testid="button-back-home"
+            >
+              <img src="/logo.png" alt="PollMetry.io" className="w-10 h-10 rounded-lg" />
+              <span className="text-xl font-semibold">PollMetry.io</span>
+            </button>
+            <ThemeToggle />
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-12">
+          <Card className="max-w-md mx-auto">
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                <ClipboardList className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <CardTitle className="text-2xl">This survey is now closed</CardTitle>
+              <CardDescription>
+                Thank you for your interest. This survey is no longer accepting responses.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <button
+                onClick={() => setLocation("/")}
+                className="text-primary hover:underline"
+                data-testid="link-go-home"
+              >
+                Go back to home
+              </button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
   const currentQuestion = surveyData?.questions[currentQuestionIndex];
   const progress = surveyData 
     ? ((currentQuestionIndex + 1) / surveyData.questions.length) * 100 

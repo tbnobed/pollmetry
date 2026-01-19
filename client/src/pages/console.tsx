@@ -83,6 +83,23 @@ export default function Console() {
     },
   });
 
+  const toggleSessionActiveMutation = useMutation({
+    mutationFn: async ({ sessionId, isActive }: { sessionId: string; isActive: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/sessions/${sessionId}/activate`, { isActive });
+      return response.json();
+    },
+    onSuccess: (_, { isActive }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
+      toast({ 
+        title: isActive ? "Survey is now open" : "Survey is now closed",
+        description: isActive ? "Participants can now submit responses" : "No more responses can be submitted"
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to update session", variant: "destructive" });
+    },
+  });
+
   const handleCreateSession = (e: React.FormEvent) => {
     e.preventDefault();
     createSessionMutation.mutate({ 
@@ -293,6 +310,11 @@ export default function Console() {
                             <><Radio className="w-3 h-3 mr-1" />Live</>
                           )}
                         </Badge>
+                        {session.mode === "survey" && (
+                          <Badge variant={session.isActive ? "default" : "outline"} className={session.isActive ? "bg-green-600" : ""}>
+                            {session.isActive ? "Open" : "Closed"}
+                          </Badge>
+                        )}
                       </div>
                       <CardDescription className="mt-1">
                         Created {new Date(session.createdAt).toLocaleDateString()}
@@ -319,6 +341,27 @@ export default function Console() {
                       </Button>
                     </div>
                   </div>
+                  {session.mode === "survey" && (
+                    <Button
+                      variant={session.isActive ? "outline" : "default"}
+                      className={`w-full ${session.isActive ? "" : "bg-green-600 hover:bg-green-700"}`}
+                      onClick={() => toggleSessionActiveMutation.mutate({ 
+                        sessionId: session.id, 
+                        isActive: !session.isActive 
+                      })}
+                      disabled={toggleSessionActiveMutation.isPending}
+                      data-testid={`button-toggle-active-${session.id}`}
+                    >
+                      {toggleSessionActiveMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : session.isActive ? (
+                        <Radio className="w-4 h-4 mr-2" />
+                      ) : (
+                        <Radio className="w-4 h-4 mr-2" />
+                      )}
+                      {session.isActive ? "Close Survey" : "Open Survey"}
+                    </Button>
+                  )}
                   <div className="flex gap-2">
                     <Button
                       variant="default"
