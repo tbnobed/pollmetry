@@ -1,4 +1,4 @@
-whyservices:
+services:
   app:
     build:
       context: .
