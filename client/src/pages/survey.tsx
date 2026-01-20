@@ -372,7 +372,7 @@ export default function Survey() {
           </Card>
         )}
 
-        {surveyState === "in_progress" && currentQuestion && surveyData && (
+        {surveyState === "in_progress" && currentQuestion && surveyData && !sessionClosed && (
           <div className="max-w-lg w-full space-y-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
