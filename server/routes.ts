@@ -713,6 +713,12 @@ export async function registerRoutes(
       const newProgress = completion.questionsAnswered + 1;
       await storage.updateSurveyProgress(surveyId, newProgress);
 
+      // Emit real-time update for live stats panel
+      io.to(`session:${req.params.sessionId}`).emit("vote_update", {
+        questionId,
+        tally: await storage.getVoteTally(questionId)
+      });
+
       res.json({ success: true, questionsAnswered: newProgress });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
