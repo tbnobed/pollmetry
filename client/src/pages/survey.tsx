@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CheckCircle2, Clock, Loader2, ClipboardList, ArrowRight, RefreshCw } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, ClipboardList, ArrowRight, RefreshCw, XCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Session, Segment, QuestionType } from "@shared/schema";
 import { v4 as uuidv4 } from "uuid";
+import { connectSocket } from "@/lib/socket";
 
 interface SurveyQuestion {
   id: string;
@@ -46,6 +48,8 @@ export default function Survey() {
   const [sliderValue, setSliderValue] = useState(50);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [voterToken, setVoterToken] = useState<string>("");
+  const [sessionClosed, setSessionClosed] = useState(false);
+  const { toast } = useToast();
 
   const { data: session, isLoading, error } = useQuery<Session>({
     queryKey: ["/api/sessions/code", code],
@@ -93,6 +97,35 @@ export default function Survey() {
       setSurveyState("thankyou");
     },
   });
+
+  // Connect to socket for real-time session closed notifications
+  useEffect(() => {
+    if (!session) return;
+
+    const socket = connectSocket(segment);
+    
+    socket.on("connect", () => {
+      socket.emit("audience:join", { 
+        code, 
+        segment, 
+        voterToken: voterToken || "survey-participant" 
+      });
+    });
+
+    socket.on("session_closed", () => {
+      setSessionClosed(true);
+      toast({
+        title: "Survey Closed",
+        description: "This survey has been closed by the host.",
+        variant: "destructive",
+      });
+    });
+
+    return () => {
+      socket.off("session_closed");
+      socket.disconnect();
+    };
+  }, [session, code, segment, voterToken, toast]);
 
   const handleNextQuestionRef = useRef<() => Promise<void>>();
 
@@ -279,7 +312,31 @@ export default function Survey() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4">
-        {surveyState === "start" && (
+        {/* Session Closed State */}
+        {sessionClosed && (
+          <Card className="max-w-md w-full">
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                <XCircle className="w-8 h-8 text-destructive" />
+              </div>
+              <CardTitle className="text-2xl">Survey Closed</CardTitle>
+              <CardDescription>
+                This survey has been closed by the host. Thank you for your interest.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Button 
+                variant="outline"
+                onClick={() => setLocation("/")}
+                data-testid="button-return-home"
+              >
+                Return Home
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {surveyState === "start" && !sessionClosed && (
           <Card className="max-w-md w-full">
             <CardHeader className="text-center">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
@@ -300,7 +357,7 @@ export default function Survey() {
               <Button 
                 size="lg" 
                 onClick={handleStartSurvey}
-                disabled={startSurveyMutation.isPending}
+                disabled={startSurveyMutation.isPending || sessionClosed}
                 className="w-full"
                 data-testid="button-start-survey"
               >

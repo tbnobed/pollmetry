@@ -3,8 +3,10 @@ import { useParams, useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Users, Globe, Home, Loader2, ClipboardList } from "lucide-react";
+import { Users, Globe, Home, Loader2, ClipboardList, XCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { VotingInterface } from "@/components/voting-interface";
 import type { Session, QuestionWithTally, Segment } from "@shared/schema";
 import { getSocket, connectSocket, setSegment } from "@/lib/socket";
@@ -23,6 +25,8 @@ export default function Join() {
   const [currentQuestion, setCurrentQuestion] = useState<QuestionWithTally | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [sessionClosed, setSessionClosed] = useState(false);
+  const { toast } = useToast();
 
   const { data: session, isLoading, error } = useQuery<Session>({
     queryKey: ["/api/sessions/code", code],
@@ -82,6 +86,16 @@ export default function Join() {
       setHasVoted(true);
     });
 
+    socket.on("session_closed", () => {
+      setSessionClosed(true);
+      setCurrentQuestion(null);
+      toast({
+        title: "Session Closed",
+        description: "This polling session has been closed by the host.",
+        variant: "destructive",
+      });
+    });
+
     return () => {
       socket.off("connect");
       socket.off("disconnect");
@@ -89,9 +103,10 @@ export default function Join() {
       socket.off("session:question_state");
       socket.off("session:results");
       socket.off("vote:confirmed");
+      socket.off("session_closed");
       socket.disconnect();
     };
-  }, [session, code, segment]);
+  }, [session, code, segment, toast]);
 
   const handleVote = (payload: any) => {
     const socket = getSocket();
@@ -184,7 +199,29 @@ export default function Join() {
       </header>
 
       <main className="flex-1 flex flex-col">
-        {!currentQuestion || currentQuestion.state !== "LIVE" ? (
+        {sessionClosed ? (
+          <div className="flex-1 flex items-center justify-center p-4">
+            <Card className="max-w-md w-full">
+              <CardContent className="pt-8 pb-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                  <XCircle className="w-8 h-8 text-destructive" />
+                </div>
+                <h2 className="text-xl font-semibold mb-2">Session Closed</h2>
+                <p className="text-muted-foreground mb-4">
+                  This polling session has been closed by the host. Thank you for participating!
+                </p>
+                <Button 
+                  variant="outline"
+                  onClick={() => setLocation("/")}
+                  data-testid="button-return-home"
+                >
+                  <Home className="w-4 h-4 mr-2" />
+                  Return Home
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : !currentQuestion || currentQuestion.state !== "LIVE" ? (
           <div className="flex-1 flex items-center justify-center p-4">
             <Card className="max-w-md w-full">
               <CardContent className="pt-8 pb-8 text-center">

@@ -85,6 +85,17 @@ export async function registerRoutes(
     console.log("Admin account created: admin / admin123");
   }
 
+  // Initialize Socket.IO before routes so it can be used in route handlers
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+    },
+  });
+
+  const sessionRooms = new Map<string, Set<string>>();
+  const pollsterRooms = new Map<string, Set<string>>();
+
   // Health check endpoint for Docker/load balancer
   app.get("/api/health", async (req, res) => {
     try {
@@ -837,21 +848,19 @@ export async function registerRoutes(
       }
       
       const updatedSession = await storage.updateSessionActive(req.params.sessionId, isActive);
+      
+      // Notify all connected participants when session is closed
+      if (!isActive) {
+        io.to(`session:${req.params.sessionId}`).emit("session_closed", {
+          message: "This session has been closed by the pollster"
+        });
+      }
+      
       res.json({ success: true, session: updatedSession });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
-
-  const io = new SocketIOServer(httpServer, {
-    cors: {
-      origin: "*",
-      methods: ["GET", "POST"],
-    },
-  });
-
-  const sessionRooms = new Map<string, Set<string>>();
-  const pollsterRooms = new Map<string, Set<string>>();
 
   io.on("connection", (socket) => {
     let currentRoom: string | null = null;
