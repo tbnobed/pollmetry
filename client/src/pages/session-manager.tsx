@@ -31,6 +31,7 @@ export default function SessionManager() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrSegment, setQrSegment] = useState<"room" | "remote">("room");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questionType, setQuestionType] = useState<QuestionType>("multiple_choice");
@@ -335,13 +336,35 @@ export default function SessionManager() {
                 <DialogHeader>
                   <DialogTitle>Join QR Code</DialogTitle>
                   <DialogDescription>
-                    Scan this code to join the session
+                    Generate QR codes for room or remote audiences
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 py-4">
+                  {/* Segment Selector */}
+                  <div className="flex items-center gap-2 w-full justify-center">
+                    <Button
+                      variant={qrSegment === "room" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setQrSegment("room")}
+                      data-testid="button-qr-room"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Room (In-Person)
+                    </Button>
+                    <Button
+                      variant={qrSegment === "remote" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setQrSegment("remote")}
+                      data-testid="button-qr-remote"
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Remote (Virtual)
+                    </Button>
+                  </div>
+                  
                   <div className="bg-white p-4 rounded-lg">
                     <QRCodeSVG 
-                      value={`${window.location.origin}/join/${session.code}`}
+                      value={`${window.location.origin}/join/${session.code}?segment=${qrSegment}`}
                       size={256}
                       level="H"
                     />
@@ -349,12 +372,22 @@ export default function SessionManager() {
                   <div className="text-center">
                     <p className="text-3xl font-mono font-bold tracking-widest">{session.code}</p>
                     <p className="text-muted-foreground text-sm mt-1">
-                      {window.location.origin}/join/{session.code}
+                      {window.location.origin}/join/{session.code}?segment={qrSegment}
                     </p>
+                    <Badge variant={qrSegment === "room" ? "default" : "secondary"} className="mt-2">
+                      {qrSegment === "room" ? "In-Person Audience" : "Virtual Audience"}
+                    </Badge>
                   </div>
-                  <Button onClick={copyJoinUrl} variant="outline" className="w-full">
+                  <Button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/join/${session.code}?segment=${qrSegment}`);
+                      toast({ title: `Copied ${qrSegment} join URL` });
+                    }} 
+                    variant="outline" 
+                    className="w-full"
+                  >
                     <Copy className="w-4 h-4 mr-2" />
-                    Copy Join URL
+                    Copy {qrSegment === "room" ? "Room" : "Remote"} URL
                   </Button>
                 </div>
               </DialogContent>
