@@ -720,7 +720,7 @@ export default function SessionManager() {
         </div>
 
           {/* Right side - Live Stats Panel */}
-          <div className="w-80 shrink-0 hidden lg:block">
+          <div className="w-[420px] shrink-0 hidden lg:block">
             <Card className="sticky top-4">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -757,8 +757,9 @@ export default function SessionManager() {
 
                 {/* Per-Question Stats */}
                 {questions && questions.length > 0 && (
-                  <div className="space-y-3 pt-2 border-t">
-                    <h4 className="text-sm font-medium text-muted-foreground">By Question</h4>
+                  <div className="pt-2 border-t">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">By Question</h4>
+                    <div className="grid grid-cols-2 gap-2">
                     {questions.map((q, index) => {
                       const tally = tallies[q.id];
                       const total = tally?.total || 0;
@@ -836,6 +837,7 @@ export default function SessionManager() {
                         </div>
                       );
                     })}
+                    </div>
                   </div>
                 )}
 
