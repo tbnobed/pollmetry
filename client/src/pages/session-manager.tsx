@@ -161,6 +161,8 @@ export default function SessionManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId, "questions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId, "survey", "stats"] });
+      setTallies({});
       toast({ title: "Survey reset - all votes and progress cleared" });
     },
     onError: () => {
