@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Users, BarChart3, Zap } from "lucide-react";
+import { Users, TrendingUp } from "lucide-react";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [joinCode, setJoinCode] = useState("");
+  const [segment, setSegment] = useState<"room" | "remote">("remote");
 
   const handleJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (joinCode.trim()) {
-      setLocation(`/join/${joinCode.trim().toUpperCase()}`);
+      setLocation(`/join/${joinCode.trim().toUpperCase()}?segment=${segment}`);
     }
   };
 
@@ -68,6 +69,29 @@ export default function Home() {
                   maxLength={6}
                   data-testid="input-join-code"
                 />
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-sm text-muted-foreground">I am:</span>
+                  <Button
+                    type="button"
+                    variant={segment === "room" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSegment("room")}
+                    data-testid="button-segment-room"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    In the Room
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={segment === "remote" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSegment("remote")}
+                    data-testid="button-segment-remote"
+                  >
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Joining Remotely
+                  </Button>
+                </div>
                 <Button 
                   type="submit" 
                   className="w-full h-12 text-lg"
