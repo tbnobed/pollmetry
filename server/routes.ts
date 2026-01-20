@@ -970,6 +970,12 @@ export async function registerRoutes(
         questionId: data.questionId,
         tally,
       });
+      
+      // Also emit vote_update for the live stats panel in session manager
+      io.to(`session:${question.sessionId}`).emit("vote_update", {
+        questionId: data.questionId,
+        tally,
+      });
     });
 
     socket.on("pollster:control", async (data: { action: string; questionId: string }) => {
