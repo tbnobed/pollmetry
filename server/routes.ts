@@ -585,6 +585,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/sessions/:sessionId/questions/:questionId/tally", async (req, res) => {
+    try {
+      const tally = await storage.getVoteTally(req.params.questionId);
+      res.json(tally);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/sessions/:sessionId/results", async (req, res) => {
     try {
       const questions = await storage.getQuestionsBySession(req.params.sessionId);
