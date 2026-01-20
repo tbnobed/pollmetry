@@ -96,12 +96,18 @@ export default function SessionManager() {
       setTallies(prev => ({ ...prev, [data.questionId]: data.tally }));
     });
 
+    // Listen for survey progress updates (participant counts)
+    socket.on("survey_progress", () => {
+      refetchSurveyStats();
+    });
+
     return () => {
       socket.off("session:question_state");
       socket.off("vote_update");
+      socket.off("survey_progress");
       socket.disconnect();
     };
-  }, [session, sessionId, refetchQuestions]);
+  }, [session, sessionId, refetchQuestions, refetchSurveyStats]);
 
   const createQuestionMutation = useMutation({
     mutationFn: async (data: { type: QuestionType; prompt: string; optionsJson?: string[]; durationSeconds?: number }) => {

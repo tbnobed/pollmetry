@@ -728,6 +728,9 @@ export async function registerRoutes(
         tally: await storage.getVoteTally(questionId)
       });
 
+      // Emit survey progress update for participant stats
+      io.to(`session:${req.params.sessionId}`).emit("survey_progress");
+
       res.json({ success: true, questionsAnswered: newProgress });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -751,6 +754,9 @@ export async function registerRoutes(
         questionsAnswered: completion.questionsAnswered,
         totalQuestions: completion.totalQuestions,
       });
+
+      // Emit survey progress update for participant stats
+      io.to(`session:${req.params.sessionId}`).emit("survey_progress");
 
       res.json({ success: true });
     } catch (error) {
