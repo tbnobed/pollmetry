@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
-import { Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Check, Clock } from "lucide-react";
 import type { QuestionWithTally, Segment, EmojiType } from "@shared/schema";
 import { EMOJIS } from "@shared/schema";
+import { useCountdown } from "@/hooks/use-countdown";
 
 interface VotingInterfaceProps {
   question: QuestionWithTally;
@@ -18,6 +20,19 @@ export function VotingInterface({ question, hasVoted, onVote, segment }: VotingI
   const [sliderValue, setSliderValue] = useState(50);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [selectedEmoji, setSelectedEmoji] = useState<EmojiType | null>(null);
+  
+  const remaining = useCountdown(
+    question.durationSeconds,
+    question.openedAt,
+    question.state === "LIVE"
+  );
+  
+  const isUrgent = remaining !== null && remaining <= 10;
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
+  };
 
   const handleMultipleChoiceVote = (optionId: number) => {
     if (hasVoted || question.isFrozen) return;
@@ -61,9 +76,22 @@ export function VotingInterface({ question, hasVoted, onVote, segment }: VotingI
   return (
     <div className="flex-1 flex flex-col p-4">
       <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 mt-4">
-          {question.prompt}
-        </h2>
+        <div className="text-center mb-8 mt-4">
+          {remaining !== null && (
+            <div className="flex justify-center mb-4">
+              <Badge 
+                variant={isUrgent ? "destructive" : "secondary"}
+                className={`text-lg px-4 py-1 ${isUrgent ? "animate-pulse" : ""}`}
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                {formatTime(remaining)}
+              </Badge>
+            </div>
+          )}
+          <h2 className="text-3xl md:text-4xl font-bold">
+            {question.prompt}
+          </h2>
+        </div>
 
         {question.type === "multiple_choice" && (
           <div className="space-y-4 flex-1">

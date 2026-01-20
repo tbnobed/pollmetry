@@ -22,6 +22,7 @@ import { QRCodeSVG } from "qrcode.react";
 import type { Session, Question, QuestionType, QuestionState, VoteTally } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { EMOJIS } from "@shared/schema";
+import { CountdownTimer } from "@/components/countdown-timer";
 
 export default function SessionManager() {
   const params = useParams<{ id: string }>();
@@ -587,7 +588,16 @@ export default function SessionManager() {
                           {question.isRevealed && <Badge variant="secondary"><Eye className="w-3 h-3 mr-1" />Revealed</Badge>}
                           {question.isFrozen && <Badge variant="secondary"><Lock className="w-3 h-3 mr-1" />Frozen</Badge>}
                           {question.durationSeconds && (
-                            <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />{question.durationSeconds}s</Badge>
+                            <CountdownTimer
+                              durationSeconds={question.durationSeconds}
+                              openedAt={question.openedAt}
+                              isLive={question.state === "LIVE"}
+                              onExpire={() => {
+                                if (question.state === "LIVE") {
+                                  controlQuestionMutation.mutate({ questionId: question.id, action: "close" });
+                                }
+                              }}
+                            />
                           )}
                         </div>
                       </div>
