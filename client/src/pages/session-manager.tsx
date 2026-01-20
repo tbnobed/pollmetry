@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   Plus, ArrowLeft, Play, Square, Eye, EyeOff, Lock, RotateCcw, 
-  Loader2, Copy, BarChart3, Trash2, GripVertical, CheckCircle, Clock, QrCode, Pencil
+  Loader2, Copy, BarChart3, Trash2, GripVertical, CheckCircle, Clock, QrCode, Pencil,
+  Users, TrendingUp, Activity
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -48,6 +49,28 @@ export default function SessionManager() {
     enabled: !!sessionId,
   });
 
+  // Fetch initial tallies for all questions
+  useEffect(() => {
+    if (!questions || questions.length === 0) return;
+
+    const fetchTallies = async () => {
+      const newTallies: Record<string, VoteTally> = {};
+      for (const q of questions) {
+        try {
+          const response = await fetch(`/api/sessions/${sessionId}/questions/${q.id}/tally`);
+          if (response.ok) {
+            newTallies[q.id] = await response.json();
+          }
+        } catch (e) {
+          // Ignore errors
+        }
+      }
+      setTallies(newTallies);
+    };
+
+    fetchTallies();
+  }, [questions, sessionId]);
+
   useEffect(() => {
     if (!session) return;
 
@@ -61,8 +84,14 @@ export default function SessionManager() {
       refetchQuestions();
     });
 
+    // Listen for vote updates to update tallies in real-time
+    socket.on("vote_update", (data: { questionId: string; tally: VoteTally }) => {
+      setTallies(prev => ({ ...prev, [data.questionId]: data.tally }));
+    });
+
     return () => {
       socket.off("session:question_state");
+      socket.off("vote_update");
       socket.disconnect();
     };
   }, [session, sessionId, refetchQuestions]);
@@ -362,9 +391,12 @@ export default function SessionManager() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Run of Show</h2>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <div className="flex gap-6">
+          {/* Left side - Questions */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">Run of Show</h2>
+              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button data-testid="button-add-question">
                 <Plus className="w-4 h-4 mr-2" />
@@ -685,6 +717,137 @@ export default function SessionManager() {
             </CardContent>
           </Card>
         )}
+        </div>
+
+          {/* Right side - Live Stats Panel */}
+          <div className="w-80 shrink-0 hidden lg:block">
+            <Card className="sticky top-4">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Activity className="w-5 h-5" />
+                  Live Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Session Overview */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total Votes</span>
+                    <span className="font-semibold">
+                      {Object.values(tallies).reduce((sum, t) => sum + (t?.total || 0), 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Users className="w-3 h-3" /> Room
+                    </span>
+                    <span className="font-medium">
+                      {Object.values(tallies).reduce((sum, t) => sum + (t?.bySegment?.room || 0), 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" /> Remote
+                    </span>
+                    <span className="font-medium">
+                      {Object.values(tallies).reduce((sum, t) => sum + (t?.bySegment?.remote || 0), 0)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Per-Question Stats */}
+                {questions && questions.length > 0 && (
+                  <div className="space-y-3 pt-2 border-t">
+                    <h4 className="text-sm font-medium text-muted-foreground">By Question</h4>
+                    {questions.map((q, index) => {
+                      const tally = tallies[q.id];
+                      const total = tally?.total || 0;
+                      const options = q.optionsJson || [];
+                      
+                      return (
+                        <div 
+                          key={q.id} 
+                          className={`p-3 rounded-lg border ${q.state === "LIVE" ? "border-chart-2 bg-chart-2/5" : "bg-muted/30"}`}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-mono">
+                              {index + 1}
+                            </span>
+                            <span className="text-sm font-medium truncate flex-1" title={q.prompt}>
+                              {q.prompt.length > 25 ? q.prompt.slice(0, 25) + "..." : q.prompt}
+                            </span>
+                            {q.state === "LIVE" && (
+                              <Badge variant="default" className="text-xs">LIVE</Badge>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-xs mb-2">
+                            <span className="text-muted-foreground">{total} votes</span>
+                            {tally?.votesPerSecond !== undefined && tally.votesPerSecond > 0 && (
+                              <span className="text-chart-2">{tally.votesPerSecond.toFixed(1)}/sec</span>
+                            )}
+                          </div>
+
+                          {/* Results visualization based on question type */}
+                          {q.type === "multiple_choice" && options.length > 0 && total > 0 && (
+                            <div className="space-y-1">
+                              {options.map((opt: string, i: number) => {
+                                const count = tally?.byOption?.[i.toString()] || 0;
+                                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                                return (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <div className="flex-1">
+                                      <div className="flex justify-between text-xs mb-0.5">
+                                        <span className="truncate max-w-[100px]" title={opt}>{opt}</span>
+                                        <span className="font-medium">{pct}%</span>
+                                      </div>
+                                      <Progress value={pct} className="h-1.5" />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {q.type === "slider" && total > 0 && (
+                            <div className="text-center">
+                              <div className="text-2xl font-bold">
+                                {(tally as any)?.average?.toFixed(1) || "0"}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Average (0-100)</div>
+                            </div>
+                          )}
+
+                          {q.type === "emoji" && total > 0 && tally?.byOption && (
+                            <div className="flex flex-wrap gap-1">
+                              {Object.entries(tally.byOption).map(([emoji, count]) => (
+                                <Badge key={emoji} variant="secondary" className="text-sm">
+                                  {emoji} {count}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          {total === 0 && (
+                            <div className="text-xs text-muted-foreground text-center py-2">
+                              No votes yet
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {(!questions || questions.length === 0) && (
+                  <div className="text-center text-sm text-muted-foreground py-4">
+                    Add questions to see live stats
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </main>
 
       <Dialog open={editDialogOpen} onOpenChange={(open) => {
