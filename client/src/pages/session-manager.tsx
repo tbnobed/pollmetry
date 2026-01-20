@@ -49,6 +49,12 @@ export default function SessionManager() {
     enabled: !!sessionId,
   });
 
+  const { data: surveyStats, refetch: refetchSurveyStats } = useQuery<{ total: number; completed: number; inProgress: number }>({
+    queryKey: ["/api/sessions", sessionId, "survey", "stats"],
+    enabled: !!sessionId && session?.mode === "survey",
+    refetchInterval: 5000,
+  });
+
   // Fetch initial tallies for all questions
   useEffect(() => {
     if (!questions || questions.length === 0) return;
@@ -729,6 +735,35 @@ export default function SessionManager() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Survey Stats (for survey mode) */}
+                {session?.mode === "survey" && surveyStats && (
+                  <div className="space-y-2 pb-2 border-b">
+                    <h4 className="text-sm font-medium text-muted-foreground">Participants</h4>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Users className="w-3 h-3" /> Active
+                      </span>
+                      <span className="font-semibold text-chart-2">
+                        {surveyStats.inProgress}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> Completed
+                      </span>
+                      <span className="font-semibold text-chart-1">
+                        {surveyStats.completed}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Total Started</span>
+                      <span className="font-medium">
+                        {surveyStats.total}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Session Overview */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
