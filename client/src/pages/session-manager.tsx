@@ -255,13 +255,6 @@ export default function SessionManager() {
     }
   };
 
-  const copyJoinUrl = () => {
-    if (session) {
-      const url = `${window.location.origin}/join/${session.code}`;
-      navigator.clipboard.writeText(url);
-      toast({ title: "Join URL copied to clipboard" });
-    }
-  };
 
   const getStateBadge = (state: QuestionState, isSurveyMode: boolean = false) => {
     switch (state) {
@@ -392,9 +385,38 @@ export default function SessionManager() {
                 </div>
               </DialogContent>
             </Dialog>
-            <Button variant="outline" size="sm" onClick={copyJoinUrl} data-testid="button-copy-join-url">
-              Copy Join URL
-            </Button>
+            <div className="flex items-center">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="rounded-r-none border-r-0"
+                onClick={() => {
+                  if (session) {
+                    navigator.clipboard.writeText(`${window.location.origin}/join/${session.code}?segment=room`);
+                    toast({ title: "Room join URL copied" });
+                  }
+                }}
+                data-testid="button-copy-room-url"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                Room
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="rounded-l-none"
+                onClick={() => {
+                  if (session) {
+                    navigator.clipboard.writeText(`${window.location.origin}/join/${session.code}?segment=remote`);
+                    toast({ title: "Remote join URL copied" });
+                  }
+                }}
+                data-testid="button-copy-remote-url"
+              >
+                <TrendingUp className="w-3 h-3 mr-1" />
+                Remote
+              </Button>
+            </div>
             <Button
               variant="outline"
               size="sm"
