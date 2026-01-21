@@ -539,18 +539,29 @@ export default function SessionManager() {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label>Duration (optional, seconds)</Label>
-                  <Input
-                    type="number"
-                    min={5}
-                    max={300}
-                    placeholder="No timer"
-                    value={duration || ""}
-                    onChange={(e) => setDuration(e.target.value ? parseInt(e.target.value) : undefined)}
-                    data-testid="input-duration"
-                  />
-                </div>
+                {/* Per-question duration for live polls only */}
+                {session?.mode !== "survey" && (
+                  <div className="space-y-2">
+                    <Label>Duration (optional, seconds)</Label>
+                    <Input
+                      type="number"
+                      min={5}
+                      max={300}
+                      placeholder="No timer"
+                      value={duration || ""}
+                      onChange={(e) => setDuration(e.target.value ? parseInt(e.target.value) : undefined)}
+                      data-testid="input-duration"
+                    />
+                  </div>
+                )}
+
+                {/* Info about session-level timer for survey mode */}
+                {session?.mode === "survey" && session?.questionTimeLimitSeconds && (
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg text-sm text-muted-foreground">
+                    <Clock className="w-4 h-4" />
+                    <span>Questions will auto-advance after {session.questionTimeLimitSeconds} seconds (session timer)</span>
+                  </div>
+                )}
 
                 <Button
                   type="submit"
@@ -1041,18 +1052,29 @@ export default function SessionManager() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>Duration (optional, seconds)</Label>
-              <Input
-                type="number"
-                min={5}
-                max={300}
-                placeholder="No timer"
-                value={duration || ""}
-                onChange={(e) => setDuration(e.target.value ? parseInt(e.target.value) : undefined)}
-                data-testid="input-edit-duration"
-              />
-            </div>
+            {/* Per-question duration for live polls only */}
+            {session?.mode !== "survey" && (
+              <div className="space-y-2">
+                <Label>Duration (optional, seconds)</Label>
+                <Input
+                  type="number"
+                  min={5}
+                  max={300}
+                  placeholder="No timer"
+                  value={duration || ""}
+                  onChange={(e) => setDuration(e.target.value ? parseInt(e.target.value) : undefined)}
+                  data-testid="input-edit-duration"
+                />
+              </div>
+            )}
+
+            {/* Info about session-level timer for survey mode */}
+            {session?.mode === "survey" && session?.questionTimeLimitSeconds && (
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg text-sm text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span>Questions will auto-advance after {session.questionTimeLimitSeconds} seconds (session timer)</span>
+              </div>
+            )}
 
             <Button
               type="submit"
