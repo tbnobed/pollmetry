@@ -539,8 +539,8 @@ export default function SessionManager() {
                   </div>
                 )}
 
-                {/* Per-question duration for live polls only */}
-                {session?.mode !== "survey" && (
+                {/* Per-question duration - show for live polls OR surveys without session timer */}
+                {(session?.mode !== "survey" || !session?.questionTimeLimitSeconds) && (
                   <div className="space-y-2">
                     <Label>Duration (optional, seconds)</Label>
                     <Input
@@ -555,7 +555,7 @@ export default function SessionManager() {
                   </div>
                 )}
 
-                {/* Info about session-level timer for survey mode */}
+                {/* Info about session-level timer for survey mode with timer set */}
                 {session?.mode === "survey" && session?.questionTimeLimitSeconds && (
                   <div className="flex items-center gap-2 p-3 bg-muted rounded-lg text-sm text-muted-foreground">
                     <Clock className="w-4 h-4" />
@@ -1052,8 +1052,8 @@ export default function SessionManager() {
               </div>
             )}
 
-            {/* Per-question duration for live polls only */}
-            {session?.mode !== "survey" && (
+            {/* Per-question duration - show for live polls OR surveys without session timer */}
+            {(session?.mode !== "survey" || !session?.questionTimeLimitSeconds) && (
               <div className="space-y-2">
                 <Label>Duration (optional, seconds)</Label>
                 <Input
@@ -1068,7 +1068,7 @@ export default function SessionManager() {
               </div>
             )}
 
-            {/* Info about session-level timer for survey mode */}
+            {/* Info about session-level timer for survey mode with timer set */}
             {session?.mode === "survey" && session?.questionTimeLimitSeconds && (
               <div className="flex items-center gap-2 p-3 bg-muted rounded-lg text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
