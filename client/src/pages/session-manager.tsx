@@ -587,7 +587,8 @@ export default function SessionManager() {
                           <Badge variant="outline" className="capitalize">{question.type.replace("_", " ")}</Badge>
                           {question.isRevealed && <Badge variant="secondary"><Eye className="w-3 h-3 mr-1" />Revealed</Badge>}
                           {question.isFrozen && <Badge variant="secondary"><Lock className="w-3 h-3 mr-1" />Frozen</Badge>}
-                          {question.durationSeconds && (
+                          {/* Show per-question timer for live polls */}
+                          {question.durationSeconds && session?.mode !== "survey" && (
                             <CountdownTimer
                               durationSeconds={question.durationSeconds}
                               openedAt={question.openedAt}
@@ -598,6 +599,13 @@ export default function SessionManager() {
                                 }
                               }}
                             />
+                          )}
+                          {/* Show session-level timer for survey mode */}
+                          {session?.mode === "survey" && session?.questionTimeLimitSeconds && (
+                            <Badge variant="outline">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {session.questionTimeLimitSeconds}s per question
+                            </Badge>
                           )}
                         </div>
                       </div>
