@@ -128,8 +128,7 @@ export async function registerRoutes(
         mode: session.mode,
         isActive: session.isActive,
         timestamp: new Date().toISOString(),
-        liveQuestion: null,
-        allQuestions: []
+        liveQuestion: null
       };
 
       if (liveQuestion) {
@@ -155,7 +154,7 @@ export async function registerRoutes(
 
         response.liveQuestion = {
           id: liveQuestion.id,
-          text: liveQuestion.prompt,
+          questionText: liveQuestion.prompt,
           type: liveQuestion.type,
           state: liveQuestion.state,
           resultsVisible: liveQuestion.isRevealed,
@@ -168,8 +167,9 @@ export async function registerRoutes(
         };
       }
 
-      // Include all questions with their current state and results
-      for (const q of questions) {
+      // Include all questions with their current state and results (Question1, Question2, etc.)
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
         const tally = await storage.getVoteTally(q.id);
         const questionOptions = q.optionsJson || [];
 
@@ -183,16 +183,16 @@ export async function registerRoutes(
           };
         });
 
-        response.allQuestions.push({
+        response[`Question${i + 1}`] = {
           id: q.id,
-          text: q.prompt,
+          questionText: q.prompt,
           type: q.type,
           state: q.state,
           order: q.order,
           resultsVisible: q.isRevealed,
           totalVotes: tally.total,
           options
-        });
+        };
       }
 
       res.json(response);
