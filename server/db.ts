@@ -13,6 +13,15 @@ if (!process.env.DATABASE_URL) {
 function createPool(): pg.Pool {
   const connectionString = process.env.DATABASE_URL!;
   
+  // Connection pool settings optimized for 300+ concurrent users
+  const poolSettings = {
+    max: 20,                    // Maximum connections in pool
+    min: 5,                     // Minimum connections to keep open
+    idleTimeoutMillis: 30000,   // Close idle connections after 30s
+    connectionTimeoutMillis: 10000, // Timeout for acquiring connection
+    allowExitOnIdle: false,     // Keep pool alive
+  };
+  
   if (process.env.NODE_ENV === "production") {
     // Production: parse connection string manually to handle special characters
     const match = connectionString.match(
@@ -27,6 +36,7 @@ function createPool(): pg.Pool {
         database,
         user,
         password,
+        ...poolSettings,
       };
       
       if (queryString?.includes("sslmode=require")) {
@@ -38,7 +48,7 @@ function createPool(): pg.Pool {
   }
   
   // Development or fallback: use connection string directly
-  return new Pool({ connectionString });
+  return new Pool({ connectionString, ...poolSettings });
 }
 
 export const pool = createPool();

@@ -85,12 +85,23 @@ export async function registerRoutes(
     console.log("Admin account created: admin / admin123");
   }
 
-  // Initialize Socket.IO before routes so it can be used in route handlers
+  // Initialize Socket.IO with optimizations for 300+ concurrent connections
   const io = new SocketIOServer(httpServer, {
     cors: {
       origin: "*",
       methods: ["GET", "POST"],
     },
+    // Performance optimizations for high concurrency
+    pingTimeout: 60000,           // 60s timeout before considering connection dead
+    pingInterval: 25000,          // Ping every 25s to keep connections alive
+    upgradeTimeout: 30000,        // 30s to upgrade from polling to websocket
+    maxHttpBufferSize: 1e6,       // 1MB max message size
+    transports: ["websocket", "polling"], // Prefer websocket, fallback to polling
+    allowUpgrades: true,          // Allow transport upgrades
+    perMessageDeflate: {          // Compress messages to reduce bandwidth
+      threshold: 1024,            // Only compress messages > 1KB
+    },
+    connectTimeout: 45000,        // 45s connection timeout
   });
 
   const sessionRooms = new Map<string, Set<string>>();
@@ -104,6 +115,36 @@ export async function registerRoutes(
       res.json({ status: "healthy", timestamp: new Date().toISOString() });
     } catch (error) {
       res.status(503).json({ status: "unhealthy", error: "Database connection failed" });
+    }
+  });
+
+  // Server stats endpoint for monitoring WebSocket connections
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const sockets = await io.fetchSockets();
+      const sessionStats: { [code: string]: number } = {};
+      
+      // Count connections per session room
+      Array.from(sessionRooms.entries()).forEach(([roomId, clientSet]) => {
+        sessionStats[roomId] = clientSet.size;
+      });
+
+      res.json({
+        timestamp: new Date().toISOString(),
+        websocket: {
+          totalConnections: sockets.length,
+          sessionsActive: sessionRooms.size,
+          pollstersActive: pollsterRooms.size,
+          connectionsBySession: sessionStats,
+        },
+        server: {
+          uptime: process.uptime(),
+          memoryUsage: process.memoryUsage(),
+          nodeVersion: process.version,
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get stats" });
     }
   });
 
