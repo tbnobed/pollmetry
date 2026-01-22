@@ -393,7 +393,7 @@ export async function registerRoutes(
 
   app.post("/api/admin/users", requireAdmin, async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, isAdmin = false } = req.body;
       if (!username || !password) {
         return res.status(400).json({ error: "Username and password required" });
       }
@@ -406,10 +406,75 @@ export async function registerRoutes(
       const user = await storage.createUser({
         username,
         password: hashPassword(password),
-        isAdmin: false,
+        isAdmin: isAdmin,
       });
 
       res.json({ id: user.id, username: user.username, isAdmin: user.isAdmin });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update user (username, isAdmin)
+  app.put("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const { username, isAdmin } = req.body;
+      const userId = req.params.id;
+      
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // If changing username, check it doesn't conflict
+      if (username && username !== existingUser.username) {
+        const conflict = await storage.getUserByUsername(username);
+        if (conflict) {
+          return res.status(400).json({ error: "Username already exists" });
+        }
+      }
+
+      // Prevent demoting the last admin
+      if (typeof isAdmin === 'boolean' && isAdmin === false && existingUser.isAdmin) {
+        const allUsers = await storage.getAllUsers();
+        const adminCount = allUsers.filter(u => u.isAdmin).length;
+        if (adminCount <= 1) {
+          return res.status(400).json({ error: "Cannot remove admin privileges from the last admin user" });
+        }
+      }
+
+      const updates: { username?: string; isAdmin?: boolean } = {};
+      if (username) updates.username = username;
+      if (typeof isAdmin === 'boolean') updates.isAdmin = isAdmin;
+
+      const updatedUser = await storage.updateUser(userId, updates);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ id: updatedUser.id, username: updatedUser.username, isAdmin: updatedUser.isAdmin });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update user password
+  app.put("/api/admin/users/:id/password", requireAdmin, async (req, res) => {
+    try {
+      const { password } = req.body;
+      const userId = req.params.id;
+
+      if (!password || password.length < 4) {
+        return res.status(400).json({ error: "Password must be at least 4 characters" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await storage.updateUserPassword(userId, hashPassword(password));
+      res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
@@ -421,9 +486,15 @@ export async function registerRoutes(
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      if (user.isAdmin) {
-        return res.status(400).json({ error: "Cannot delete admin user" });
+      
+      // Count admin users - prevent deleting the last admin
+      const allUsers = await storage.getAllUsers();
+      const adminCount = allUsers.filter(u => u.isAdmin).length;
+      
+      if (user.isAdmin && adminCount <= 1) {
+        return res.status(400).json({ error: "Cannot delete the last admin user" });
       }
+      
       await storage.deleteUser(req.params.id);
       res.json({ success: true });
     } catch (error) {

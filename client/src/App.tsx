@@ -13,6 +13,7 @@ import SessionManager from "@/pages/session-manager";
 import Dashboard from "@/pages/dashboard";
 import Overlay from "@/pages/overlay";
 import Admin from "@/pages/admin";
+import UserManagement from "@/pages/user-management";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/dashboard/:id" component={Dashboard} />
       <Route path="/overlay/:code" component={Overlay} />
       <Route path="/admin" component={Admin} />
+      <Route path="/users" component={UserManagement} />
       <Route component={NotFound} />
     </Switch>
   );

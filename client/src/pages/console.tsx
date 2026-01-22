@@ -156,7 +156,7 @@ export default function Console() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setLocation("/admin")}
+                onClick={() => setLocation("/users")}
                 data-testid="button-admin"
               >
                 <Users className="w-4 h-4 mr-2" />
