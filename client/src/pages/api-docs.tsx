@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Copy, Check, ExternalLink, Code, Radio, FileJson, Keyboard } from "lucide-react";
+import { ArrowLeft, Copy, Check, ExternalLink, Code, Radio, FileJson, Keyboard, Activity } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useState } from "react";
 
@@ -361,6 +361,82 @@ export default function ApiDocs() {
                 <pre className="bg-muted p-3 rounded-md text-sm">
 {`socket.emit("join:session", { sessionCode: "ABC123" });`}
                 </pre>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" />
+                <CardTitle>Server Monitoring</CardTitle>
+              </div>
+              <CardDescription>
+                Monitor WebSocket connections, active sessions, and server health.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary">GET</Badge>
+                  <code className="text-sm bg-muted px-2 py-1 rounded flex-1">
+                    /api/stats
+                  </code>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => copyToClipboard(`${baseUrl}/api/stats`, 'stats')}
+                    data-testid="button-copy-stats"
+                  >
+                    {copiedEndpoint === 'stats' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Real-time server statistics for monitoring connection load.
+                </p>
+                <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
+{`{
+  "timestamp": "2025-01-22T12:00:00.000Z",
+  "websocket": {
+    "totalConnections": 156,
+    "sessionsActive": 3,
+    "pollstersActive": 2,
+    "connectionsBySession": {
+      "ABC123": 85,
+      "DEF456": 71
+    }
+  },
+  "server": {
+    "uptime": 3600.5,
+    "memoryUsage": { ... },
+    "nodeVersion": "v20.x.x"
+  }
+}`}</pre>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary">GET</Badge>
+                  <code className="text-sm bg-muted px-2 py-1 rounded flex-1">
+                    /api/health
+                  </code>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => copyToClipboard(`${baseUrl}/api/health`, 'health')}
+                    data-testid="button-copy-health"
+                  >
+                    {copiedEndpoint === 'health' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Health check endpoint for load balancers and monitoring systems.
+                </p>
+                <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
+{`{
+  "status": "healthy",
+  "timestamp": "2025-01-22T12:00:00.000Z"
+}`}</pre>
               </div>
             </CardContent>
           </Card>
