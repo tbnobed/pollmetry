@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users, Trash2, ClipboardList, Radio } from "lucide-react";
+import { Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users, Trash2, ClipboardList, Radio, Code } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import type { Session, SessionMode } from "@shared/schema";
@@ -153,15 +153,26 @@ export default function Console() {
               Welcome, {user.username}
             </span>
             {user.isAdmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setLocation("/users")}
-                data-testid="button-admin"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Manage Pollsters
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/api-docs")}
+                  data-testid="button-api-docs"
+                >
+                  <Code className="w-4 h-4 mr-2" />
+                  API
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/users")}
+                  data-testid="button-admin"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Pollsters
+                </Button>
+              </>
             )}
             <ThemeToggle />
             <Button

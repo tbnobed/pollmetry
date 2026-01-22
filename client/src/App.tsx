@@ -14,6 +14,7 @@ import Dashboard from "@/pages/dashboard";
 import Overlay from "@/pages/overlay";
 import Admin from "@/pages/admin";
 import UserManagement from "@/pages/user-management";
+import ApiDocs from "@/pages/api-docs";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/overlay/:code" component={Overlay} />
       <Route path="/admin" component={Admin} />
       <Route path="/users" component={UserManagement} />
+      <Route path="/api-docs" component={ApiDocs} />
       <Route component={NotFound} />
     </Switch>
   );
