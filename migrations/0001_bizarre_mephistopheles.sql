@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "vote_events_question_voter_idx" ON "vote_events" USING btree ("question_id","voter_token_hash");

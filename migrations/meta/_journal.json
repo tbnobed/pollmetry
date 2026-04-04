@@ -8,6 +8,13 @@
       "when": 1768844041043,
       "tag": "0000_initial_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1775322611921,
+      "tag": "0001_bizarre_mephistopheles",
+      "breakpoints": true
     }
   ]
 }
