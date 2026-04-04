@@ -38,7 +38,8 @@ const migrations = [
     questions_answered integer DEFAULT 0 NOT NULL,
     total_questions integer NOT NULL
   )\`,
-  'CREATE INDEX IF NOT EXISTS survey_completions_session_id_idx ON survey_completions(session_id)'
+  'CREATE INDEX IF NOT EXISTS survey_completions_session_id_idx ON survey_completions(session_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS vote_events_question_voter_idx ON vote_events(question_id, voter_token_hash)'
 ];
 
 async function run() {
