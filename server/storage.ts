@@ -227,14 +227,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createVoteEvent(insertVote: InsertVoteEvent): Promise<VoteEvent | null> {
-    const result = await db.insert(voteEvents).values({
-      sessionId: insertVote.sessionId,
-      questionId: insertVote.questionId,
-      voterTokenHash: insertVote.voterTokenHash,
-      segment: insertVote.segment as "room" | "remote",
-      payloadJson: insertVote.payloadJson,
-    }).onConflictDoNothing({ target: [voteEvents.questionId, voteEvents.voterTokenHash] }).returning();
-    return result[0] || null;
+    const alreadyVoted = await this.hasVoted(insertVote.questionId, insertVote.voterTokenHash);
+    if (alreadyVoted) {
+      return null;
+    }
+
+    try {
+      const [vote] = await db.insert(voteEvents).values({
+        sessionId: insertVote.sessionId,
+        questionId: insertVote.questionId,
+        voterTokenHash: insertVote.voterTokenHash,
+        segment: insertVote.segment as "room" | "remote",
+        payloadJson: insertVote.payloadJson,
+      }).returning();
+      return vote;
+    } catch (err: any) {
+      if (err?.code === "23505") {
+        return null;
+      }
+      throw err;
+    }
   }
 
   async hasVoted(questionId: string, voterTokenHash: string): Promise<boolean> {
