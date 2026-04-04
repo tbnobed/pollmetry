@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, jsonb, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, jsonb, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -84,6 +84,7 @@ export const voteEvents = pgTable("vote_events", {
   index("vote_events_session_id_idx").on(table.sessionId),
   index("vote_events_question_id_idx").on(table.questionId),
   index("vote_events_created_at_idx").on(table.createdAt),
+  uniqueIndex("vote_events_question_voter_idx").on(table.questionId, table.voterTokenHash),
 ]);
 
 export const voteEventsRelations = relations(voteEvents, ({ one }) => ({

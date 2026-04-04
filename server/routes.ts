@@ -15,6 +15,15 @@ declare global {
 
 const authTokens = new Map<string, { userId: string; expiresAt: number }>();
 
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, session] of authTokens) {
+    if (session.expiresAt < now) {
+      authTokens.delete(token);
+    }
+  }
+}, 60 * 60 * 1000);
+
 function hashPassword(password: string): string {
   return createHash("sha256").update(password).digest("hex");
 }
@@ -118,8 +127,8 @@ export async function registerRoutes(
     }
   });
 
-  // Server stats endpoint for monitoring WebSocket connections
-  app.get("/api/stats", async (req, res) => {
+  // Server stats endpoint for monitoring WebSocket connections (admin only)
+  app.get("/api/stats", requireAdmin, async (req, res) => {
     try {
       const sockets = await io.fetchSockets();
       const sessionStats: { [code: string]: number } = {};
@@ -280,12 +289,6 @@ export async function registerRoutes(
       // Create a deterministic token hash from the device ID
       const voterTokenHash = createHash("sha256").update(`hardware-${deviceId}`).digest("hex");
 
-      // Check if this device already voted on this question
-      const hasVoted = await storage.hasVoted(liveQuestion.id, voterTokenHash);
-      if (hasVoted) {
-        return res.status(400).json({ error: "This device has already voted on this question" });
-      }
-
       // Validate option index
       const options = liveQuestion.optionsJson || [];
       if (optionIndex < 0 || optionIndex >= options.length) {
@@ -296,13 +299,18 @@ export async function registerRoutes(
         });
       }
 
-      // Record the vote
-      await storage.createVote({
+      // Record the vote (atomic dedup via unique constraint)
+      const vote = await storage.createVoteEvent({
+        sessionId: session.id,
         questionId: liveQuestion.id,
         segment: segment === "remote" ? "remote" : "room",
         voterTokenHash,
         payloadJson: { optionId: optionIndex }
       });
+
+      if (!vote) {
+        return res.status(400).json({ error: "This device has already voted on this question" });
+      }
 
       // Emit real-time update
       io.to(`session:${session.id}`).emit("vote_update", {
@@ -974,12 +982,20 @@ export async function registerRoutes(
     }
   });
 
+  function safeHandler(handler: (...args: any[]) => Promise<void>) {
+    return (...args: any[]) => {
+      handler(...args).catch((err) => {
+        console.error("Socket handler error:", err);
+      });
+    };
+  }
+
   io.on("connection", (socket) => {
     let currentRoom: string | null = null;
     let currentSessionId: string | null = null;
     let isPollster = false;
 
-    socket.on("audience:join", async (data: { code: string; segment: string; voterToken: string }) => {
+    socket.on("audience:join", safeHandler(async (data: { code: string; segment: string; voterToken: string }) => {
       const session = await storage.getSessionByCode(data.code);
       if (!session) {
         socket.emit("error", { message: "Session not found" });
@@ -1004,9 +1020,9 @@ export async function registerRoutes(
       } else {
         socket.emit("session:current_question", null);
       }
-    });
+    }));
 
-    socket.on("pollster:join", async (data: { sessionId: string }) => {
+    socket.on("pollster:join", safeHandler(async (data: { sessionId: string }) => {
       currentRoom = `session:${data.sessionId}`;
       currentSessionId = data.sessionId;
       isPollster = true;
@@ -1028,9 +1044,9 @@ export async function registerRoutes(
       } else {
         socket.emit("session:current_question", null);
       }
-    });
+    }));
 
-    socket.on("overlay:join", async (data: { code: string }) => {
+    socket.on("overlay:join", safeHandler(async (data: { code: string }) => {
       const session = await storage.getSessionByCode(data.code);
       if (!session) {
         socket.emit("error", { message: "Session not found" });
@@ -1050,30 +1066,29 @@ export async function registerRoutes(
       } else {
         socket.emit("session:current_question", null);
       }
-    });
+    }));
 
-    socket.on("audience:vote", async (data: { questionId: string; payload: any; voterToken: string }) => {
+    socket.on("audience:vote", safeHandler(async (data: { questionId: string; payload: any; voterToken: string }) => {
       const question = await storage.getQuestion(data.questionId);
       if (!question || question.state !== "LIVE" || question.isFrozen) {
         socket.emit("error", { message: "Cannot vote on this question" });
         return;
       }
 
-      const hasVoted = await storage.hasVoted(data.questionId, data.voterToken);
-      if (hasVoted) {
-        socket.emit("error", { message: "Already voted" });
-        return;
-      }
-
       const segment = (socket.handshake.query.segment as string) || "remote";
 
-      await storage.createVoteEvent({
+      const vote = await storage.createVoteEvent({
         sessionId: question.sessionId,
         questionId: data.questionId,
         voterTokenHash: data.voterToken,
         segment: segment as any,
         payloadJson: data.payload,
       });
+
+      if (!vote) {
+        socket.emit("error", { message: "Already voted" });
+        return;
+      }
 
       socket.emit("vote:confirmed");
 
@@ -1083,14 +1098,13 @@ export async function registerRoutes(
         tally,
       });
       
-      // Also emit vote_update for the live stats panel in session manager
       io.to(`session:${question.sessionId}`).emit("vote_update", {
         questionId: data.questionId,
         tally,
       });
-    });
+    }));
 
-    socket.on("pollster:control", async (data: { action: string; questionId: string }) => {
+    socket.on("pollster:control", safeHandler(async (data: { action: string; questionId: string }) => {
       const question = await storage.getQuestion(data.questionId);
       if (!question) return;
 
@@ -1117,7 +1131,6 @@ export async function registerRoutes(
 
         case "reveal":
           updatedQuestion = (await storage.updateQuestionRevealed(data.questionId, true))!;
-          // Broadcast the question with tally so overlay can show results (for CLOSED or DRAFT/survey mode)
           if (updatedQuestion.state === "CLOSED" || updatedQuestion.state === "DRAFT") {
             const revealTally = await storage.getVoteTally(data.questionId);
             io.to(`session:${question.sessionId}`).emit("session:current_question", { ...updatedQuestion, tally: revealTally });
@@ -1126,7 +1139,6 @@ export async function registerRoutes(
 
         case "hide":
           updatedQuestion = (await storage.updateQuestionRevealed(data.questionId, false))!;
-          // Hide from overlay (for CLOSED or DRAFT/survey mode)
           if (updatedQuestion.state === "CLOSED" || updatedQuestion.state === "DRAFT") {
             io.to(`session:${question.sessionId}`).emit("session:current_question", null);
           }
@@ -1160,13 +1172,21 @@ export async function registerRoutes(
           tally,
         });
       }
-    });
+    }));
 
     socket.on("disconnect", () => {
       if (currentSessionId) {
-        sessionRooms.get(currentSessionId)?.delete(socket.id);
+        const sRoom = sessionRooms.get(currentSessionId);
+        if (sRoom) {
+          sRoom.delete(socket.id);
+          if (sRoom.size === 0) sessionRooms.delete(currentSessionId);
+        }
         if (isPollster) {
-          pollsterRooms.get(currentSessionId)?.delete(socket.id);
+          const pRoom = pollsterRooms.get(currentSessionId);
+          if (pRoom) {
+            pRoom.delete(socket.id);
+            if (pRoom.size === 0) pollsterRooms.delete(currentSessionId);
+          }
         }
       }
     });

@@ -44,9 +44,18 @@ Preferred communication style: Simple, everyday language.
 
 ### Real-time Voting System
 - **Question States**: DRAFT → LIVE → CLOSED lifecycle
-- **Vote Tallying**: Database storage with real-time updates via WebSocket
+- **Vote Tallying**: SQL-aggregated tallies (GROUP BY) for scalability, real-time updates via WebSocket
+- **Duplicate Vote Prevention**: UNIQUE constraint on (questionId, voterTokenHash) with atomic INSERT ON CONFLICT DO NOTHING
 - **Segment Tracking**: Votes tagged with "room" or "remote" segment based on join path query parameter
 - **Controls**: Go Live, Close, Reveal/Hide Results, Freeze, Reset votes per question
+
+### Production Hardening (500+ users)
+- **Socket.IO**: WebSocket-first transport, pingTimeout 60s, pingInterval 25s, perMessageDeflate compression (>1KB threshold)
+- **Database Pool**: max 20, min 5, 10s connection timeout, 30s idle timeout
+- **Error Boundaries**: All async socket handlers wrapped in safeHandler to prevent unhandled rejections
+- **Memory Management**: Auth token cleanup interval (hourly), empty room Map cleanup on disconnect
+- **Monitoring**: `/api/health` (public), `/api/stats` (admin-only), connection tracking per session
+- **Database Indexes**: Composite unique index on vote_events(question_id, voter_token_hash), indexes on session_id, question_id, created_at
 
 ### Project Structure
 ```

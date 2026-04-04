@@ -47,7 +47,7 @@ export interface IStorage {
   deleteQuestion(id: string): Promise<void>;
   resetQuestionVotes(id: string): Promise<void>;
   
-  createVoteEvent(vote: InsertVoteEvent): Promise<VoteEvent>;
+  createVoteEvent(vote: InsertVoteEvent): Promise<VoteEvent | null>;
   hasVoted(questionId: string, voterTokenHash: string): Promise<boolean>;
   getVoteTally(questionId: string): Promise<VoteTally>;
   getVotesPerSecond(questionId: string, windowSeconds: number): Promise<number>;
@@ -226,15 +226,15 @@ export class DatabaseStorage implements IStorage {
     }).where(eq(questions.id, id));
   }
 
-  async createVoteEvent(insertVote: InsertVoteEvent): Promise<VoteEvent> {
-    const [vote] = await db.insert(voteEvents).values({
+  async createVoteEvent(insertVote: InsertVoteEvent): Promise<VoteEvent | null> {
+    const result = await db.insert(voteEvents).values({
       sessionId: insertVote.sessionId,
       questionId: insertVote.questionId,
       voterTokenHash: insertVote.voterTokenHash,
       segment: insertVote.segment as "room" | "remote",
       payloadJson: insertVote.payloadJson,
-    }).returning();
-    return vote;
+    }).onConflictDoNothing({ target: [voteEvents.questionId, voteEvents.voterTokenHash] }).returning();
+    return result[0] || null;
   }
 
   async hasVoted(questionId: string, voterTokenHash: string): Promise<boolean> {
@@ -251,33 +251,52 @@ export class DatabaseStorage implements IStorage {
       return { total: 0, bySegment: { room: 0, remote: 0 } };
     }
 
-    const votes = await db.select().from(voteEvents).where(eq(voteEvents.questionId, questionId));
+    const segmentCounts = await db
+      .select({ segment: voteEvents.segment, count: count() })
+      .from(voteEvents)
+      .where(eq(voteEvents.questionId, questionId))
+      .groupBy(voteEvents.segment);
 
     const tally: VoteTally = {
-      total: votes.length,
+      total: 0,
       bySegment: { room: 0, remote: 0 },
       byOption: {},
       bySegmentAndOption: { room: {}, remote: {} },
     };
 
-    for (const vote of votes) {
-      const segment = vote.segment as Segment;
-      tally.bySegment[segment]++;
+    for (const row of segmentCounts) {
+      const seg = row.segment as Segment;
+      tally.bySegment[seg] = row.count;
+      tally.total += row.count;
+    }
 
-      const payload = vote.payloadJson as any;
-      
-      if (question.type === "multiple_choice" && payload.optionId !== undefined) {
-        const key = payload.optionId.toString();
-        tally.byOption![key] = (tally.byOption![key] || 0) + 1;
-        tally.bySegmentAndOption![segment][key] = (tally.bySegmentAndOption![segment][key] || 0) + 1;
-      } else if (question.type === "slider" && payload.value !== undefined) {
-        const total = (tally as any).sliderTotal || 0;
-        (tally as any).sliderTotal = total + payload.value;
-        (tally as any).average = (tally as any).sliderTotal / tally.total;
-      } else if (question.type === "emoji" && payload.emoji) {
-        const key = payload.emoji;
-        tally.byOption![key] = (tally.byOption![key] || 0) + 1;
-        tally.bySegmentAndOption![segment][key] = (tally.bySegmentAndOption![segment][key] || 0) + 1;
+    if (question.type === "slider") {
+      const sliderResult = await db
+        .select({ avgVal: avg(sql`(${voteEvents.payloadJson}->>'value')::numeric`) })
+        .from(voteEvents)
+        .where(eq(voteEvents.questionId, questionId));
+      (tally as any).average = sliderResult[0]?.avgVal ? parseFloat(sliderResult[0].avgVal) : 0;
+    } else {
+      const keyField = question.type === "multiple_choice"
+        ? sql`${voteEvents.payloadJson}->>'optionId'`
+        : sql`${voteEvents.payloadJson}->>'emoji'`;
+
+      const optionCounts = await db
+        .select({
+          segment: voteEvents.segment,
+          optionKey: keyField,
+          count: count(),
+        })
+        .from(voteEvents)
+        .where(eq(voteEvents.questionId, questionId))
+        .groupBy(voteEvents.segment, keyField);
+
+      for (const row of optionCounts) {
+        const key = row.optionKey as string;
+        const seg = row.segment as Segment;
+        if (!key) continue;
+        tally.byOption![key] = (tally.byOption![key] || 0) + row.count;
+        tally.bySegmentAndOption![seg][key] = (tally.bySegmentAndOption![seg][key] || 0) + row.count;
       }
     }
 
