@@ -213,7 +213,7 @@ export default function Join() {
                 </div>
                 <h2 className="text-xl font-semibold mb-2">Session Closed</h2>
                 <p className="text-muted-foreground mb-4">
-                  This polling session has been closed by the host. Thank you for participating!
+                  {session?.closingMessage || "This polling session has been closed by the host. Thank you for participating!"}
                 </p>
                 <Button 
                   variant="outline"
@@ -235,7 +235,7 @@ export default function Join() {
                 </div>
                 <h2 className="text-xl font-semibold mb-2">Waiting for Poll</h2>
                 <p className="text-muted-foreground">
-                  The pollster will start a question soon. Stay tuned!
+                  {session?.openingMessage || "The pollster will start a question soon. Stay tuned!"}
                 </p>
                 <div className="mt-4 flex items-center justify-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />

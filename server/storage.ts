@@ -120,6 +120,8 @@ export class DatabaseStorage implements IStorage {
       mode: (insertSession.mode || "live") as SessionMode,
       broadcastDelaySeconds: insertSession.broadcastDelaySeconds || 0,
       questionTimeLimitSeconds: insertSession.questionTimeLimitSeconds,
+      openingMessage: insertSession.openingMessage || null,
+      closingMessage: insertSession.closingMessage || null,
       code,
       createdById,
     }).returning();

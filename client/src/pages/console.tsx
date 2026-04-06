@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -24,6 +25,8 @@ export default function Console() {
   const [sessionMode, setSessionMode] = useState<SessionMode>("live");
   const [broadcastDelay, setBroadcastDelay] = useState(0);
   const [questionTimeLimit, setQuestionTimeLimit] = useState<number | undefined>(undefined);
+  const [openingMessage, setOpeningMessage] = useState("");
+  const [closingMessage, setClosingMessage] = useState("");
 
   const { data: user, isLoading: userLoading } = useQuery<{ id: string; username: string; isAdmin: boolean }>({
     queryKey: ["/api/auth/me"],
@@ -107,6 +110,8 @@ export default function Console() {
       mode: sessionMode,
       broadcastDelaySeconds: broadcastDelay,
       questionTimeLimitSeconds: sessionMode === "survey" ? questionTimeLimit : undefined,
+      openingMessage: openingMessage.trim() || undefined,
+      closingMessage: closingMessage.trim() || undefined,
     });
   };
 
@@ -293,6 +298,34 @@ export default function Console() {
                     </p>
                   </div>
                 )}
+                <div className="space-y-2">
+                  <Label htmlFor="openingMessage">Opening Message</Label>
+                  <Textarea
+                    id="openingMessage"
+                    placeholder="e.g., Welcome! Please wait for the host to begin."
+                    value={openingMessage}
+                    onChange={(e) => setOpeningMessage(e.target.value.slice(0, 500))}
+                    className="min-h-[60px] resize-none"
+                    data-testid="input-opening-message"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Shown to participants when they first join. Leave blank for the default.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="closingMessage">Closing Message</Label>
+                  <Textarea
+                    id="closingMessage"
+                    placeholder="e.g., Thank you for participating!"
+                    value={closingMessage}
+                    onChange={(e) => setClosingMessage(e.target.value.slice(0, 500))}
+                    className="min-h-[60px] resize-none"
+                    data-testid="input-closing-message"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Shown to participants when the session ends. Leave blank for the default.
+                  </p>
+                </div>
                 <Button 
                   type="submit" 
                   className="w-full"

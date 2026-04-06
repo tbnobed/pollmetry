@@ -51,7 +51,9 @@ const migrations = [
     created_at timestamp DEFAULT now() NOT NULL
   )\`,
   'CREATE INDEX IF NOT EXISTS audience_messages_session_id_idx ON audience_messages(session_id)',
-  'CREATE INDEX IF NOT EXISTS audience_messages_created_at_idx ON audience_messages(created_at)'
+  'CREATE INDEX IF NOT EXISTS audience_messages_created_at_idx ON audience_messages(created_at)',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS opening_message text',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS closing_message text'
 ];
 
 async function run() {

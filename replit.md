@@ -9,6 +9,7 @@ The application supports three session modes:
 - **Live Polling**: Real-time voting where the pollster controls when each question goes live
 - **Survey Mode**: Self-paced kiosk mode where a single device is shared by multiple participants who answer questions sequentially with auto-advance and thank you screens between participants
 - **Q&A Session**: Dedicated question-and-answer mode where audience submits questions/comments in real time; pollster manages them with star, dismiss, search, and filter tools
+- **Custom Messages**: All session types support optional `openingMessage` and `closingMessage` fields, displayed on the audience waiting/start screen and end/thank-you screen respectively
 
 ## User Preferences
 

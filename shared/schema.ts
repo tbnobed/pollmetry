@@ -25,6 +25,8 @@ export const sessions = pgTable("sessions", {
   isActive: boolean("is_active").default(false).notNull(),
   broadcastDelaySeconds: integer("broadcast_delay_seconds").default(0).notNull(),
   questionTimeLimitSeconds: integer("question_time_limit_seconds"),
+  openingMessage: text("opening_message"),
+  closingMessage: text("closing_message"),
   createdById: varchar("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -158,6 +160,8 @@ export const insertSessionSchema = createInsertSchema(sessions).pick({
   mode: true,
   broadcastDelaySeconds: true,
   questionTimeLimitSeconds: true,
+  openingMessage: true,
+  closingMessage: true,
 });
 
 export const insertSurveyCompletionSchema = createInsertSchema(surveyCompletions).pick({

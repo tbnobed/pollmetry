@@ -142,7 +142,7 @@ export default function QAJoin() {
               <CardContent className="py-12 text-center">
                 <XCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h2 className="text-xl font-semibold mb-2">Q&A Has Ended</h2>
-                <p className="text-muted-foreground">Thank you for participating!</p>
+                <p className="text-muted-foreground">{session.closingMessage || "Thank you for participating!"}</p>
               </CardContent>
             </Card>
           ) : !session.isActive ? (
@@ -150,7 +150,7 @@ export default function QAJoin() {
               <CardContent className="py-12 text-center">
                 <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h2 className="text-xl font-semibold mb-2">Q&A Not Open Yet</h2>
-                <p className="text-muted-foreground">The host hasn't opened questions yet. Please wait...</p>
+                <p className="text-muted-foreground">{session.openingMessage || "The host hasn't opened questions yet. Please wait..."}</p>
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mx-auto mt-4" />
               </CardContent>
             </Card>

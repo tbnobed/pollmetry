@@ -304,7 +304,7 @@ export default function Survey() {
               </div>
               <CardTitle className="text-2xl">This survey is now closed</CardTitle>
               <CardDescription>
-                Thank you for your interest. This survey is no longer accepting responses.
+                {session.closingMessage || "Thank you for your interest. This survey is no longer accepting responses."}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
@@ -378,7 +378,7 @@ export default function Survey() {
               </div>
               <CardTitle className="text-2xl">{session.name}</CardTitle>
               <CardDescription>
-                Take this quick survey to share your feedback
+                {session.openingMessage || "Take this quick survey to share your feedback"}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4">
@@ -525,7 +525,7 @@ export default function Survey() {
               </div>
               <CardTitle className="text-2xl">Thank You!</CardTitle>
               <CardDescription>
-                Your responses have been recorded.
+                {session.closingMessage || "Your responses have been recorded."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
