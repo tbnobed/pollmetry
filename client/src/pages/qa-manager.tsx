@@ -11,7 +11,7 @@ import {
   Copy, QrCode, Loader2, Search, Radio, CheckCircle, Filter, RotateCcw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getAuthToken } from "@/lib/queryClient";
 import { connectSocket, getSocket } from "@/lib/socket";
 import { QRCodeSVG } from "qrcode.react";
 import type { Session, AudienceMessage } from "@shared/schema";
@@ -27,6 +27,12 @@ export default function QAManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showQR, setShowQR] = useState(false);
   const [connectedCount, setConnectedCount] = useState(0);
+
+  useEffect(() => {
+    if (!getAuthToken()) {
+      setLocation("/login");
+    }
+  }, [setLocation]);
 
   const { data: session, isLoading: sessionLoading } = useQuery<Session>({
     queryKey: ["/api/sessions", sessionId],
@@ -74,6 +80,14 @@ export default function QAManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId] });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes("401")) {
+        toast({ title: "Session expired. Please log in again.", variant: "destructive" });
+        setLocation("/login");
+      } else {
+        toast({ title: "Failed to update Q&A status", variant: "destructive" });
+      }
     },
   });
 
