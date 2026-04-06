@@ -24,11 +24,34 @@ const { Client } = require('pg');
 const client = new Client({ connectionString: process.env.DATABASE_URL });
 
 const migrations = [
-  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS question_time_limit_seconds integer',
+  // --- sessions table columns ---
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS mode text DEFAULT \\'live\\' NOT NULL',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT false NOT NULL',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS broadcast_delay_seconds integer DEFAULT 0 NOT NULL',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS question_time_limit_seconds integer',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS opening_message text',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS closing_message text',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS created_by_id varchar',
+
+  // --- users table columns ---
   'ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean DEFAULT false NOT NULL',
+
+  // --- questions table columns ---
+  'ALTER TABLE questions ADD COLUMN IF NOT EXISTS duration_seconds integer',
+  'ALTER TABLE questions ADD COLUMN IF NOT EXISTS opened_at timestamp',
+  'ALTER TABLE questions ADD COLUMN IF NOT EXISTS closed_at timestamp',
+  'ALTER TABLE questions ADD COLUMN IF NOT EXISTS is_frozen boolean DEFAULT false NOT NULL',
+
+  // --- questions index ---
+  'CREATE INDEX IF NOT EXISTS questions_session_id_idx ON questions(session_id)',
+
+  // --- vote_events indexes ---
+  'CREATE INDEX IF NOT EXISTS vote_events_session_id_idx ON vote_events(session_id)',
+  'CREATE INDEX IF NOT EXISTS vote_events_question_id_idx ON vote_events(question_id)',
+  'CREATE INDEX IF NOT EXISTS vote_events_created_at_idx ON vote_events(created_at)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS vote_events_question_voter_idx ON vote_events(question_id, voter_token_hash)',
+
+  // --- survey_completions table ---
   \`CREATE TABLE IF NOT EXISTS survey_completions (
     id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id varchar NOT NULL REFERENCES sessions(id),
@@ -39,7 +62,8 @@ const migrations = [
     total_questions integer NOT NULL
   )\`,
   'CREATE INDEX IF NOT EXISTS survey_completions_session_id_idx ON survey_completions(session_id)',
-  'CREATE UNIQUE INDEX IF NOT EXISTS vote_events_question_voter_idx ON vote_events(question_id, voter_token_hash)',
+
+  // --- audience_messages table ---
   \`CREATE TABLE IF NOT EXISTS audience_messages (
     id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id varchar NOT NULL REFERENCES sessions(id),
@@ -51,9 +75,7 @@ const migrations = [
     created_at timestamp DEFAULT now() NOT NULL
   )\`,
   'CREATE INDEX IF NOT EXISTS audience_messages_session_id_idx ON audience_messages(session_id)',
-  'CREATE INDEX IF NOT EXISTS audience_messages_created_at_idx ON audience_messages(created_at)',
-  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS opening_message text',
-  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS closing_message text'
+  'CREATE INDEX IF NOT EXISTS audience_messages_created_at_idx ON audience_messages(created_at)'
 ];
 
 async function run() {
