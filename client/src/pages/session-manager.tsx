@@ -24,7 +24,7 @@ import { Progress } from "@/components/ui/progress";
 import { EMOJIS } from "@shared/schema";
 import { CountdownTimer } from "@/components/countdown-timer";
 import { PollsterQAPanel } from "@/components/pollster-qa-panel";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, MessageCircle, Save } from "lucide-react";
 
 export default function SessionManager() {
   const params = useParams<{ id: string }>();
@@ -42,6 +42,10 @@ export default function SessionManager() {
   const [options, setOptions] = useState(["", ""]);
   const [duration, setDuration] = useState<number | undefined>(undefined);
   const [tallies, setTallies] = useState<Record<string, VoteTally>>({});
+  const [editingOpening, setEditingOpening] = useState(false);
+  const [editingClosing, setEditingClosing] = useState(false);
+  const [openingDraft, setOpeningDraft] = useState("");
+  const [closingDraft, setClosingDraft] = useState("");
 
   const { data: session, isLoading: sessionLoading } = useQuery<Session>({
     queryKey: ["/api/sessions", sessionId],
@@ -154,6 +158,21 @@ export default function SessionManager() {
       if (actionMessages[action]) {
         toast({ title: actionMessages[action] });
       }
+    },
+  });
+
+  const updateMessagesMutation = useMutation({
+    mutationFn: async (data: { openingMessage?: string | null; closingMessage?: string | null }) => {
+      await apiRequest("PATCH", `/api/sessions/${sessionId}/messages`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId] });
+      toast({ title: "Message updated" });
+      setEditingOpening(false);
+      setEditingClosing(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update message", variant: "destructive" });
     },
   });
 
@@ -589,9 +608,70 @@ export default function SessionManager() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
-        ) : questions && questions.length > 0 ? (
+        ) : (
           <div className="space-y-4">
-            {questions.map((question, index) => (
+            <Card className="border-dashed border-muted-foreground/30">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10 text-green-500">
+                      <MessageCircle className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Opening Message</CardTitle>
+                      {editingOpening ? (
+                        <div className="mt-2 space-y-2">
+                          <Textarea
+                            value={openingDraft}
+                            onChange={(e) => setOpeningDraft(e.target.value)}
+                            placeholder="Enter a message shown to participants when they first join..."
+                            maxLength={500}
+                            className="min-h-[80px]"
+                            data-testid="input-edit-opening-message"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => updateMessagesMutation.mutate({ openingMessage: openingDraft.trim() || null })}
+                              disabled={updateMessagesMutation.isPending}
+                              data-testid="button-save-opening-message"
+                            >
+                              <Save className="w-3 h-3 mr-1" />
+                              Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingOpening(false)} data-testid="button-cancel-opening-message">
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {session?.openingMessage ? (
+                            <span className="text-foreground">{session.openingMessage}</span>
+                          ) : (
+                            <span className="italic">No opening message set</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {!editingOpening && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setOpeningDraft(session?.openingMessage || ""); setEditingOpening(true); }}
+                      data-testid="button-edit-opening-message"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+            </Card>
+
+            {questions && questions.length > 0 ? (
+              <>
+              {questions.map((question, index) => (
               <Card key={question.id} className={question.state === "LIVE" ? "border-chart-2 border-2" : ""}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-4">
@@ -805,23 +885,84 @@ export default function SessionManager() {
                 </CardContent>
               </Card>
             ))}
+              </>
+            ) : (
+              <Card className="max-w-md mx-auto">
+                <CardContent className="pt-8 pb-8 text-center">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h2 className="text-xl font-semibold mb-2">No Questions Yet</h2>
+                  <p className="text-muted-foreground mb-4">
+                    Add questions to your run of show
+                  </p>
+                  <Button onClick={() => setCreateDialogOpen(true)} data-testid="button-add-first-question">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Question
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="border-dashed border-muted-foreground/30">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/10 text-orange-500">
+                      <MessageCircle className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Closing Message</CardTitle>
+                      {editingClosing ? (
+                        <div className="mt-2 space-y-2">
+                          <Textarea
+                            value={closingDraft}
+                            onChange={(e) => setClosingDraft(e.target.value)}
+                            placeholder="Enter a message shown when the session ends..."
+                            maxLength={500}
+                            className="min-h-[80px]"
+                            data-testid="input-edit-closing-message"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => updateMessagesMutation.mutate({ closingMessage: closingDraft.trim() || null })}
+                              disabled={updateMessagesMutation.isPending}
+                              data-testid="button-save-closing-message"
+                            >
+                              <Save className="w-3 h-3 mr-1" />
+                              Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingClosing(false)} data-testid="button-cancel-closing-message">
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {session?.closingMessage ? (
+                            <span className="text-foreground">{session.closingMessage}</span>
+                          ) : (
+                            <span className="italic">No closing message set</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {!editingClosing && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setClosingDraft(session?.closingMessage || ""); setEditingClosing(true); }}
+                      data-testid="button-edit-closing-message"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+            </Card>
           </div>
-        ) : (
-          <Card className="max-w-md mx-auto">
-            <CardContent className="pt-8 pb-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h2 className="text-xl font-semibold mb-2">No Questions Yet</h2>
-              <p className="text-muted-foreground mb-4">
-                Add questions to your run of show
-              </p>
-              <Button onClick={() => setCreateDialogOpen(true)} data-testid="button-add-first-question">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Question
-              </Button>
-            </CardContent>
-          </Card>
         )}
         </div>
 

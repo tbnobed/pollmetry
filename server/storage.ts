@@ -37,6 +37,7 @@ export interface IStorage {
   getAllSessions(): Promise<Session[]>;
   deleteSession(id: string): Promise<void>;
   updateSessionActive(id: string, isActive: boolean): Promise<Session | undefined>;
+  updateSessionMessages(id: string, openingMessage: string | null, closingMessage: string | null): Promise<Session | undefined>;
   
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestion(id: string): Promise<Question | undefined>;
@@ -160,6 +161,14 @@ export class DatabaseStorage implements IStorage {
   async updateSessionActive(id: string, isActive: boolean): Promise<Session | undefined> {
     const [session] = await db.update(sessions)
       .set({ isActive })
+      .where(eq(sessions.id, id))
+      .returning();
+    return session || undefined;
+  }
+
+  async updateSessionMessages(id: string, openingMessage: string | null, closingMessage: string | null): Promise<Session | undefined> {
+    const [session] = await db.update(sessions)
+      .set({ openingMessage, closingMessage })
       .where(eq(sessions.id, id))
       .returning();
     return session || undefined;

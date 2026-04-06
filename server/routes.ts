@@ -982,6 +982,44 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/sessions/:sessionId/messages", requireAuth, async (req, res) => {
+    try {
+      const { openingMessage, closingMessage } = req.body;
+      
+      if (openingMessage !== undefined && openingMessage !== null && typeof openingMessage !== "string") {
+        return res.status(400).json({ error: "openingMessage must be a string or null" });
+      }
+      if (closingMessage !== undefined && closingMessage !== null && typeof closingMessage !== "string") {
+        return res.status(400).json({ error: "closingMessage must be a string or null" });
+      }
+      if (openingMessage && openingMessage.length > 500) {
+        return res.status(400).json({ error: "openingMessage must be 500 characters or less" });
+      }
+      if (closingMessage && closingMessage.length > 500) {
+        return res.status(400).json({ error: "closingMessage must be 500 characters or less" });
+      }
+
+      const session = await storage.getSession(req.params.sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      const user = req.user as User;
+      if (session.createdById !== user.id && !user.isAdmin) {
+        return res.status(403).json({ error: "Not authorized to modify this session" });
+      }
+
+      const updatedSession = await storage.updateSessionMessages(
+        req.params.sessionId,
+        openingMessage !== undefined ? (openingMessage || null) : session.openingMessage,
+        closingMessage !== undefined ? (closingMessage || null) : session.closingMessage,
+      );
+      res.json(updatedSession);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   function sanitizeMessage(msg: any) {
     const { voterTokenHash, ...safe } = msg;
     return safe;
