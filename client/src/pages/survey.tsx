@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CheckCircle2, Clock, Loader2, ClipboardList, ArrowRight, RefreshCw, XCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckCircle2, Clock, Loader2, ClipboardList, ArrowRight, RefreshCw, XCircle, MessageSquare, Send, Check } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Session, Segment, QuestionType } from "@shared/schema";
 import { v4 as uuidv4 } from "uuid";
-import { connectSocket } from "@/lib/socket";
+import { connectSocket, getSocket } from "@/lib/socket";
 
 interface SurveyQuestion {
   id: string;
@@ -49,6 +50,9 @@ export default function Survey() {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [voterToken, setVoterToken] = useState<string>("");
   const [sessionClosed, setSessionClosed] = useState(false);
+  const [qaMessage, setQaMessage] = useState("");
+  const [qaSending, setQaSending] = useState(false);
+  const [qaSent, setQaSent] = useState(false);
   const { toast } = useToast();
 
   const { data: session, isLoading, error } = useQuery<Session>({
@@ -197,6 +201,36 @@ export default function Survey() {
     setSliderValue(50);
     setTimeRemaining(null);
     setVoterToken("");
+    setQaMessage("");
+    setQaSending(false);
+    setQaSent(false);
+  };
+
+  const handleSendQuestion = () => {
+    if (!qaMessage.trim() || qaSending || !session) return;
+
+    setQaSending(true);
+    const socket = getSocket();
+
+    socket.emit("audience:message", {
+      sessionId: session.id,
+      message: qaMessage.trim(),
+      voterToken: voterToken || "survey-participant",
+    });
+
+    const onConfirm = () => {
+      setQaSending(false);
+      setQaSent(true);
+      setQaMessage("");
+      socket.off("message:confirmed", onConfirm);
+    };
+
+    socket.on("message:confirmed", onConfirm);
+
+    setTimeout(() => {
+      setQaSending(false);
+      socket.off("message:confirmed", onConfirm);
+    }, 5000);
   };
 
   if (isLoading) {
@@ -491,10 +525,52 @@ export default function Survey() {
               </div>
               <CardTitle className="text-2xl">Thank You!</CardTitle>
               <CardDescription>
-                Your responses have been recorded. Pass the device to the next participant.
+                Your responses have been recorded.
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-center">
+            <CardContent className="space-y-4">
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Have a question or comment?</span>
+                  <span className="text-xs text-muted-foreground">(optional)</span>
+                </div>
+
+                {qaSent ? (
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 py-3 justify-center">
+                    <Check className="w-4 h-4" />
+                    Question submitted! The host will see it.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Textarea
+                      placeholder="Type your question or comment..."
+                      value={qaMessage}
+                      onChange={(e) => setQaMessage(e.target.value.slice(0, 500))}
+                      className="min-h-[80px] text-sm resize-none"
+                      data-testid="input-survey-question"
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">{qaMessage.length}/500</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSendQuestion}
+                        disabled={!qaMessage.trim() || qaSending}
+                        data-testid="button-send-survey-question"
+                      >
+                        {qaSending ? (
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4 mr-1" />
+                        )}
+                        Send
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Button 
                 size="lg" 
                 onClick={handleRestart}
