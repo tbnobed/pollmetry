@@ -37,9 +37,13 @@ export default function Join() {
   useEffect(() => {
     if (!session) return;
 
-    // Redirect to survey page if session is in survey mode
     if (session.mode === "survey") {
       setLocation(`/survey/${code}?segment=${segment}`);
+      return;
+    }
+
+    if (session.mode === "qa") {
+      setLocation(`/qa/${code}?segment=${segment}`);
       return;
     }
 

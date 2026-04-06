@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users, Trash2, ClipboardList, Radio, Code } from "lucide-react";
+import { Plus, BarChart3, Settings, Loader2, Copy, ExternalLink, LogOut, Users, Trash2, ClipboardList, Radio, Code, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import type { Session, SessionMode } from "@shared/schema";
@@ -241,12 +241,20 @@ export default function Console() {
                           <span>Survey Mode</span>
                         </div>
                       </SelectItem>
+                      <SelectItem value="qa">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4" />
+                          <span>Q&A Session</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     {sessionMode === "live" 
                       ? "Real-time polling where you control when questions go live" 
-                      : "Self-paced survey where participants answer all questions sequentially"}
+                      : sessionMode === "survey"
+                      ? "Self-paced survey where participants answer all questions sequentially"
+                      : "Audience submits questions and comments in real time"}
                   </p>
                 </div>
                 {sessionMode === "live" && (
@@ -314,14 +322,16 @@ export default function Console() {
                     <div>
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-lg">{session.name}</CardTitle>
-                        <Badge variant={session.mode === "survey" ? "default" : "secondary"}>
+                        <Badge variant={session.mode === "survey" ? "default" : session.mode === "qa" ? "default" : "secondary"}>
                           {session.mode === "survey" ? (
                             <><ClipboardList className="w-3 h-3 mr-1" />Survey</>
+                          ) : session.mode === "qa" ? (
+                            <><MessageSquare className="w-3 h-3 mr-1" />Q&A</>
                           ) : (
                             <><Radio className="w-3 h-3 mr-1" />Live</>
                           )}
                         </Badge>
-                        {session.mode === "survey" && (
+                        {(session.mode === "survey" || session.mode === "qa") && (
                           <Badge variant={session.isActive ? "default" : "outline"} className={session.isActive ? "bg-green-600" : ""}>
                             {session.isActive ? "Open" : "Closed"}
                           </Badge>
@@ -352,7 +362,7 @@ export default function Console() {
                       </Button>
                     </div>
                   </div>
-                  {session.mode === "survey" && (
+                  {(session.mode === "survey" || session.mode === "qa") && (
                     <Button
                       variant={session.isActive ? "outline" : "default"}
                       className={`w-full ${session.isActive ? "" : "bg-green-600 hover:bg-green-700"}`}
@@ -370,7 +380,9 @@ export default function Console() {
                       ) : (
                         <Radio className="w-4 h-4 mr-2" />
                       )}
-                      {session.isActive ? "Close Survey" : "Open Survey"}
+                      {session.isActive 
+                        ? (session.mode === "qa" ? "Close Q&A" : "Close Survey") 
+                        : (session.mode === "qa" ? "Open Q&A" : "Open Survey")}
                     </Button>
                   )}
                   <div className="flex gap-2">

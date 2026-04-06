@@ -5,9 +5,10 @@
 PollMetry.io is a real-time audience polling system designed for livestream and hybrid (in-room + remote) environments. The application enables pollsters to create and manage interactive polling sessions while allowing audiences to participate via short join codes. It features three distinct interfaces: a Producer Console for poll management, an Audience voting interface, and a Dashboard for real-time analytics with segment comparison (room vs remote participants).
 
 ### Session Modes
-The application supports two session modes:
+The application supports three session modes:
 - **Live Polling**: Real-time voting where the pollster controls when each question goes live
 - **Survey Mode**: Self-paced kiosk mode where a single device is shared by multiple participants who answer questions sequentially with auto-advance and thank you screens between participants
+- **Q&A Session**: Dedicated question-and-answer mode where audience submits questions/comments in real time; pollster manages them with star, dismiss, search, and filter tools
 
 ## User Preferences
 
@@ -49,13 +50,15 @@ Preferred communication style: Simple, everyday language.
 - **Segment Tracking**: Votes tagged with "room" or "remote" segment based on join path query parameter
 - **Controls**: Go Live, Close, Reveal/Hide Results, Freeze, Reset votes per question
 
-### Real-time Q&A / Comments Module
-- **Audience Side**: Floating Q&A button on join page; audience can submit questions/comments (max 500 chars) via WebSocket
-- **Pollster Side**: Q&A panel in session manager right sidebar with real-time message feed, star/dismiss actions, and Active/Starred/All filters
+### Real-time Q&A Module
+- **Session Type**: "Q&A Session" is a dedicated session mode (alongside Live Polling and Survey Mode)
+- **Audience Side**: Full-page Q&A join experience at `/qa/:code` with question submission (max 500 chars), sent confirmation, submission counter; also available as floating widget on Live Polling join pages
+- **Pollster Side**: Dedicated Q&A Manager at `/console/:id/qa` with real-time message feed, star/dismiss/delete actions, search, Active/Starred/All filters, session stats (total/active/starred/viewers/room vs remote), QR code, and open/close controls
 - **Table**: `audience_messages` (id, sessionId, voterTokenHash, segment, message, isStarred, isDismissed, createdAt)
 - **Security**: Session ownership checks on all moderation endpoints; voterTokenHash stripped from API responses; socket membership validated before message submission; boolean input validation on star/dismiss
 - **Real-time**: Messages delivered instantly to pollster via `audience:new_message` WebSocket event; `message:confirmed` event sent back to audience
-- **Components**: `client/src/components/audience-qa.tsx` (audience widget), `client/src/components/pollster-qa-panel.tsx` (pollster panel)
+- **Pages**: `client/src/pages/qa-manager.tsx` (pollster), `client/src/pages/qa-join.tsx` (audience), `client/src/components/audience-qa.tsx` (floating widget for live polling), `client/src/components/pollster-qa-panel.tsx` (sidebar panel for live polling)
+- **Routing**: `/join/:code` auto-redirects to `/qa/:code` for Q&A sessions; `/console/:id` auto-redirects to `/console/:id/qa` for Q&A sessions
 
 ### Production Hardening (500+ users)
 - **Socket.IO**: WebSocket-first transport, pingTimeout 60s, pingInterval 25s, perMessageDeflate compression (>1KB threshold)

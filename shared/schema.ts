@@ -14,7 +14,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
 }));
 
-export const sessionModeEnum = z.enum(["live", "survey"]);
+export const sessionModeEnum = z.enum(["live", "survey", "qa"]);
 export type SessionMode = z.infer<typeof sessionModeEnum>;
 
 export const sessions = pgTable("sessions", {

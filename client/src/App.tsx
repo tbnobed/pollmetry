@@ -10,6 +10,8 @@ import Join from "@/pages/join";
 import Survey from "@/pages/survey";
 import Console from "@/pages/console";
 import SessionManager from "@/pages/session-manager";
+import QAManager from "@/pages/qa-manager";
+import QAJoin from "@/pages/qa-join";
 import Dashboard from "@/pages/dashboard";
 import Overlay from "@/pages/overlay";
 import Admin from "@/pages/admin";
@@ -25,7 +27,9 @@ function Router() {
       <Route path="/join/:code" component={Join} />
       <Route path="/survey/:code" component={Survey} />
       <Route path="/console" component={Console} />
+      <Route path="/console/:id/qa" component={QAManager} />
       <Route path="/console/:id" component={SessionManager} />
+      <Route path="/qa/:code" component={QAJoin} />
       <Route path="/dashboard/:id" component={Dashboard} />
       <Route path="/overlay/:code" component={Overlay} />
       <Route path="/admin" component={Admin} />

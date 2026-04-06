@@ -24,6 +24,7 @@ import { Progress } from "@/components/ui/progress";
 import { EMOJIS } from "@shared/schema";
 import { CountdownTimer } from "@/components/countdown-timer";
 import { PollsterQAPanel } from "@/components/pollster-qa-panel";
+import { MessageSquare } from "lucide-react";
 
 export default function SessionManager() {
   const params = useParams<{ id: string }>();
@@ -46,6 +47,12 @@ export default function SessionManager() {
     queryKey: ["/api/sessions", sessionId],
     enabled: !!sessionId,
   });
+
+  useEffect(() => {
+    if (session && session.mode === "qa") {
+      setLocation(`/console/${sessionId}/qa`);
+    }
+  }, [session, sessionId, setLocation]);
 
   const { data: questions, isLoading: questionsLoading, refetch: refetchQuestions } = useQuery<Question[]>({
     queryKey: ["/api/sessions", sessionId, "questions"],
