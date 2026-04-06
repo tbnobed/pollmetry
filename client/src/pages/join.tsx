@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Users, Globe, Home, Loader2, ClipboardList, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { VotingInterface } from "@/components/voting-interface";
+import { AudienceQA } from "@/components/audience-qa";
 import type { Session, QuestionWithTally, Segment } from "@shared/schema";
 import { getSocket, connectSocket, setSegment } from "@/lib/socket";
 import { getVoterToken, hashToken } from "@/lib/voter-token";
@@ -249,6 +250,14 @@ export default function Join() {
           />
         )}
       </main>
+
+      {session && !sessionClosed && (
+        <AudienceQA 
+          sessionId={session.id} 
+          voterTokenHash={hashToken(getVoterToken())} 
+          isConnected={isConnected} 
+        />
+      )}
     </div>
   );
 }

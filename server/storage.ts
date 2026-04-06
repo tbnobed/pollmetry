@@ -1,10 +1,11 @@
 import { 
-  users, sessions, questions, voteEvents, surveyCompletions,
+  users, sessions, questions, voteEvents, surveyCompletions, audienceMessages,
   type User, type InsertUser, 
   type Session, type InsertSession,
   type Question, type InsertQuestion,
   type VoteEvent, type InsertVoteEvent,
   type SurveyCompletion, type InsertSurveyCompletion,
+  type AudienceMessage, type InsertAudienceMessage,
   type VoteTally, type QuestionState, type Segment, type SessionMode
 } from "@shared/schema";
 import { db } from "./db";
@@ -59,6 +60,13 @@ export interface IStorage {
   completeSurvey(id: string): Promise<SurveyCompletion | undefined>;
   getSurveyStats(sessionId: string): Promise<{ total: number; completed: number; inProgress: number }>;
   resetSurvey(sessionId: string): Promise<void>;
+
+  createAudienceMessage(message: InsertAudienceMessage): Promise<AudienceMessage>;
+  getAudienceMessagesBySession(sessionId: string): Promise<AudienceMessage[]>;
+  updateAudienceMessageStarred(id: string, isStarred: boolean): Promise<AudienceMessage | undefined>;
+  updateAudienceMessageDismissed(id: string, isDismissed: boolean): Promise<AudienceMessage | undefined>;
+  deleteAudienceMessage(id: string): Promise<void>;
+  clearAudienceMessages(sessionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -370,21 +378,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async resetSurvey(sessionId: string): Promise<void> {
-    // Get all questions for this session
     const sessionQuestions = await this.getQuestionsBySession(sessionId);
     
-    // Delete all votes for each question
     for (const question of sessionQuestions) {
       await db.delete(voteEvents).where(eq(voteEvents.questionId, question.id));
-      // Reset question state
       await db.update(questions).set({ 
         isRevealed: false, 
         isFrozen: false 
       }).where(eq(questions.id, question.id));
     }
     
-    // Delete all survey completions for this session
     await db.delete(surveyCompletions).where(eq(surveyCompletions.sessionId, sessionId));
+  }
+
+  async createAudienceMessage(message: InsertAudienceMessage): Promise<AudienceMessage> {
+    const [result] = await db.insert(audienceMessages).values(message).returning();
+    return result;
+  }
+
+  async getAudienceMessagesBySession(sessionId: string): Promise<AudienceMessage[]> {
+    return db.select().from(audienceMessages)
+      .where(eq(audienceMessages.sessionId, sessionId))
+      .orderBy(desc(audienceMessages.createdAt));
+  }
+
+  async updateAudienceMessageStarred(id: string, isStarred: boolean): Promise<AudienceMessage | undefined> {
+    const [result] = await db.update(audienceMessages).set({ isStarred }).where(eq(audienceMessages.id, id)).returning();
+    return result;
+  }
+
+  async updateAudienceMessageDismissed(id: string, isDismissed: boolean): Promise<AudienceMessage | undefined> {
+    const [result] = await db.update(audienceMessages).set({ isDismissed }).where(eq(audienceMessages.id, id)).returning();
+    return result;
+  }
+
+  async deleteAudienceMessage(id: string): Promise<void> {
+    await db.delete(audienceMessages).where(eq(audienceMessages.id, id));
+  }
+
+  async clearAudienceMessages(sessionId: string): Promise<void> {
+    await db.delete(audienceMessages).where(eq(audienceMessages.sessionId, sessionId));
   }
 }
 

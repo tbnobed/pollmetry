@@ -982,6 +982,89 @@ export async function registerRoutes(
     }
   });
 
+  function sanitizeMessage(msg: any) {
+    const { voterTokenHash, ...safe } = msg;
+    return safe;
+  }
+
+  async function requireSessionOwner(req: Request, res: Response): Promise<boolean> {
+    const session = await storage.getSession(req.params.sessionId);
+    if (!session) {
+      res.status(404).json({ error: "Session not found" });
+      return false;
+    }
+    const user = req.user as User;
+    if (session.createdById !== user.id && user.role !== "admin") {
+      res.status(403).json({ error: "Forbidden" });
+      return false;
+    }
+    return true;
+  }
+
+  app.get("/api/sessions/:sessionId/messages", requireAuth, async (req, res) => {
+    try {
+      if (!(await requireSessionOwner(req, res))) return;
+      const messages = await storage.getAudienceMessagesBySession(req.params.sessionId);
+      res.json(messages.map(sanitizeMessage));
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/sessions/:sessionId/messages/:messageId/star", requireAuth, async (req, res) => {
+    try {
+      if (!(await requireSessionOwner(req, res))) return;
+      const { isStarred } = req.body;
+      if (typeof isStarred !== "boolean") {
+        return res.status(400).json({ error: "isStarred must be a boolean" });
+      }
+      const message = await storage.updateAudienceMessageStarred(req.params.messageId, isStarred);
+      if (!message || message.sessionId !== req.params.sessionId) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+      res.json(sanitizeMessage(message));
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/sessions/:sessionId/messages/:messageId/dismiss", requireAuth, async (req, res) => {
+    try {
+      if (!(await requireSessionOwner(req, res))) return;
+      const { isDismissed } = req.body;
+      if (typeof isDismissed !== "boolean") {
+        return res.status(400).json({ error: "isDismissed must be a boolean" });
+      }
+      const message = await storage.updateAudienceMessageDismissed(req.params.messageId, isDismissed);
+      if (!message || message.sessionId !== req.params.sessionId) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+      res.json(sanitizeMessage(message));
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/sessions/:sessionId/messages/:messageId", requireAuth, async (req, res) => {
+    try {
+      if (!(await requireSessionOwner(req, res))) return;
+      await storage.deleteAudienceMessage(req.params.messageId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/sessions/:sessionId/messages", requireAuth, async (req, res) => {
+    try {
+      if (!(await requireSessionOwner(req, res))) return;
+      await storage.clearAudienceMessages(req.params.sessionId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   function safeHandler(handler: (...args: any[]) => Promise<void>) {
     return (...args: any[]) => {
       handler(...args).catch((err) => {
@@ -1102,6 +1185,37 @@ export async function registerRoutes(
         questionId: data.questionId,
         tally,
       });
+    }));
+
+    socket.on("audience:message", safeHandler(async (data: { sessionId: string; message: string; voterToken: string }) => {
+      if (!currentSessionId || currentSessionId !== data.sessionId) {
+        socket.emit("error", { message: "Not joined to this session" });
+        return;
+      }
+
+      if (!data.message || typeof data.message !== "string" || data.message.trim().length === 0 || data.message.length > 500) {
+        socket.emit("error", { message: "Message must be 1-500 characters" });
+        return;
+      }
+
+      if (!data.voterToken || typeof data.voterToken !== "string") {
+        socket.emit("error", { message: "Invalid voter token" });
+        return;
+      }
+
+      const segment = (socket.handshake.query.segment as string) || "remote";
+
+      const msg = await storage.createAudienceMessage({
+        sessionId: data.sessionId,
+        voterTokenHash: data.voterToken,
+        segment: segment as any,
+        message: data.message.trim(),
+      });
+
+      socket.emit("message:confirmed");
+
+      const { voterTokenHash, ...safeMsg } = msg;
+      io.to(`pollster:${data.sessionId}`).emit("audience:new_message", safeMsg);
     }));
 
     socket.on("pollster:control", safeHandler(async (data: { action: string; questionId: string }) => {

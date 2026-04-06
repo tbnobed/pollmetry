@@ -39,7 +39,19 @@ const migrations = [
     total_questions integer NOT NULL
   )\`,
   'CREATE INDEX IF NOT EXISTS survey_completions_session_id_idx ON survey_completions(session_id)',
-  'CREATE UNIQUE INDEX IF NOT EXISTS vote_events_question_voter_idx ON vote_events(question_id, voter_token_hash)'
+  'CREATE UNIQUE INDEX IF NOT EXISTS vote_events_question_voter_idx ON vote_events(question_id, voter_token_hash)',
+  \`CREATE TABLE IF NOT EXISTS audience_messages (
+    id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id varchar NOT NULL REFERENCES sessions(id),
+    voter_token_hash text NOT NULL,
+    segment text NOT NULL,
+    message text NOT NULL,
+    is_starred boolean DEFAULT false NOT NULL,
+    is_dismissed boolean DEFAULT false NOT NULL,
+    created_at timestamp DEFAULT now() NOT NULL
+  )\`,
+  'CREATE INDEX IF NOT EXISTS audience_messages_session_id_idx ON audience_messages(session_id)',
+  'CREATE INDEX IF NOT EXISTS audience_messages_created_at_idx ON audience_messages(created_at)'
 ];
 
 async function run() {

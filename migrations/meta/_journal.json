@@ -15,6 +15,13 @@
       "when": 1775322611921,
       "tag": "0001_bizarre_mephistopheles",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775489951134,
+      "tag": "0002_goofy_microchip",
+      "breakpoints": true
     }
   ]
 }

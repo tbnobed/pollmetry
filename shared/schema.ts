@@ -117,6 +117,37 @@ export const surveyCompletionsRelations = relations(surveyCompletions, ({ one })
   }),
 }));
 
+export const audienceMessages = pgTable("audience_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").references(() => sessions.id).notNull(),
+  voterTokenHash: text("voter_token_hash").notNull(),
+  segment: text("segment").notNull().$type<Segment>(),
+  message: text("message").notNull(),
+  isStarred: boolean("is_starred").default(false).notNull(),
+  isDismissed: boolean("is_dismissed").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("audience_messages_session_id_idx").on(table.sessionId),
+  index("audience_messages_created_at_idx").on(table.createdAt),
+]);
+
+export const audienceMessagesRelations = relations(audienceMessages, ({ one }) => ({
+  session: one(sessions, {
+    fields: [audienceMessages.sessionId],
+    references: [sessions.id],
+  }),
+}));
+
+export const insertAudienceMessageSchema = createInsertSchema(audienceMessages).pick({
+  sessionId: true,
+  voterTokenHash: true,
+  segment: true,
+  message: true,
+});
+
+export type InsertAudienceMessage = z.infer<typeof insertAudienceMessageSchema>;
+export type AudienceMessage = typeof audienceMessages.$inferSelect;
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,

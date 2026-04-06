@@ -23,6 +23,7 @@ import type { Session, Question, QuestionType, QuestionState, VoteTally } from "
 import { Progress } from "@/components/ui/progress";
 import { EMOJIS } from "@shared/schema";
 import { CountdownTimer } from "@/components/countdown-timer";
+import { PollsterQAPanel } from "@/components/pollster-qa-panel";
 
 export default function SessionManager() {
   const params = useParams<{ id: string }>();
@@ -975,6 +976,12 @@ export default function SessionManager() {
                 )}
               </CardContent>
             </Card>
+
+            {sessionId && (
+              <div className="mt-4">
+                <PollsterQAPanel sessionId={sessionId} />
+              </div>
+            )}
           </div>
         </div>
       </main>

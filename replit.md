@@ -49,6 +49,14 @@ Preferred communication style: Simple, everyday language.
 - **Segment Tracking**: Votes tagged with "room" or "remote" segment based on join path query parameter
 - **Controls**: Go Live, Close, Reveal/Hide Results, Freeze, Reset votes per question
 
+### Real-time Q&A / Comments Module
+- **Audience Side**: Floating Q&A button on join page; audience can submit questions/comments (max 500 chars) via WebSocket
+- **Pollster Side**: Q&A panel in session manager right sidebar with real-time message feed, star/dismiss actions, and Active/Starred/All filters
+- **Table**: `audience_messages` (id, sessionId, voterTokenHash, segment, message, isStarred, isDismissed, createdAt)
+- **Security**: Session ownership checks on all moderation endpoints; voterTokenHash stripped from API responses; socket membership validated before message submission; boolean input validation on star/dismiss
+- **Real-time**: Messages delivered instantly to pollster via `audience:new_message` WebSocket event; `message:confirmed` event sent back to audience
+- **Components**: `client/src/components/audience-qa.tsx` (audience widget), `client/src/components/pollster-qa-panel.tsx` (pollster panel)
+
 ### Production Hardening (500+ users)
 - **Socket.IO**: WebSocket-first transport, pingTimeout 60s, pingInterval 25s, perMessageDeflate compression (>1KB threshold)
 - **Database Pool**: max 20, min 5, 10s connection timeout, 30s idle timeout
