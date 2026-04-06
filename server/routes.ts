@@ -1032,7 +1032,7 @@ export async function registerRoutes(
       return false;
     }
     const user = req.user as User;
-    if (session.createdById !== user.id && user.role !== "admin") {
+    if (session.createdById !== user.id && !user.isAdmin) {
       res.status(403).json({ error: "Forbidden" });
       return false;
     }
