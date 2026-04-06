@@ -23,7 +23,6 @@ import type { Session, Question, QuestionType, QuestionState, VoteTally } from "
 import { Progress } from "@/components/ui/progress";
 import { EMOJIS } from "@shared/schema";
 import { CountdownTimer } from "@/components/countdown-timer";
-import { PollsterQAPanel } from "@/components/pollster-qa-panel";
 import { MessageSquare, MessageCircle, Save } from "lucide-react";
 
 export default function SessionManager() {
@@ -44,7 +43,6 @@ export default function SessionManager() {
   const [tallies, setTallies] = useState<Record<string, VoteTally>>({});
   const [editingOpening, setEditingOpening] = useState(false);
   const [editingClosing, setEditingClosing] = useState(false);
-  const [qaDialogOpen, setQaDialogOpen] = useState(false);
   const [openingDraft, setOpeningDraft] = useState("");
   const [closingDraft, setClosingDraft] = useState("");
 
@@ -462,6 +460,15 @@ export default function SessionManager() {
             >
               <BarChart3 className="w-4 h-4 mr-2" />
               Dashboard
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`/console/${sessionId}/qa`, "_blank")}
+              data-testid="button-open-qa-panel"
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Q&A
             </Button>
             {session?.mode === "survey" && (
               <Button
@@ -1126,19 +1133,6 @@ export default function SessionManager() {
               </CardContent>
             </Card>
 
-            {sessionId && (
-              <div className="mt-4">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setQaDialogOpen(true)}
-                  data-testid="button-open-qa-panel"
-                >
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Audience Q&A
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </main>
@@ -1253,22 +1247,6 @@ export default function SessionManager() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={qaDialogOpen} onOpenChange={setQaDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5" />
-              Audience Q&A
-            </DialogTitle>
-            <DialogDescription>
-              Manage audience questions and comments in real time.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto min-h-0">
-            {sessionId && <PollsterQAPanel sessionId={sessionId} />}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
