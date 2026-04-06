@@ -228,7 +228,7 @@ export default function QAManager() {
                 </Button>
 
                 <Button
-                  variant={session.isActive ? "outline" : "default"}
+                  variant={session.isActive ? "destructive" : "default"}
                   className={`w-full ${session.isActive ? "" : "bg-green-600 hover:bg-green-700"}`}
                   onClick={() => toggleActiveMutation.mutate(!session.isActive)}
                   disabled={toggleActiveMutation.isPending}
@@ -239,7 +239,7 @@ export default function QAManager() {
                   ) : (
                     <Radio className="w-4 h-4 mr-2" />
                   )}
-                  {session.isActive ? "Close Q&A" : "Open Q&A"}
+                  {session.isActive ? "Stop Accepting Questions" : "Start Accepting Questions"}
                 </Button>
               </CardContent>
             </Card>
