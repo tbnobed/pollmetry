@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, Clock, Loader2, ClipboardList, ArrowRight, RefreshCw, XCircle, MessageSquare, Send, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle2, Clock, Loader2, ClipboardList, ArrowRight, RefreshCw, XCircle, MessageSquare, Send, Check, User } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Session, Segment, QuestionType } from "@shared/schema";
@@ -51,6 +54,9 @@ export default function Survey() {
   const [voterToken, setVoterToken] = useState<string>("");
   const [sessionClosed, setSessionClosed] = useState(false);
   const [qaMessage, setQaMessage] = useState("");
+  const [qaName, setQaName] = useState("");
+  const [qaTopic, setQaTopic] = useState("");
+  const [qaSegment, setQaSegment] = useState<"room" | "remote">("remote");
   const [qaSending, setQaSending] = useState(false);
   const [qaSent, setQaSent] = useState(false);
   const { toast } = useToast();
@@ -207,14 +213,22 @@ export default function Survey() {
   };
 
   const handleSendQuestion = () => {
-    if (!qaMessage.trim() || qaSending || !session) return;
+    if (!qaMessage.trim() || !qaName.trim() || qaSending || !session) return;
+    if (session.qaTopics && session.qaTopics.length > 0 && !qaTopic) return;
 
     setQaSending(true);
     const socket = getSocket();
 
+    const parts: string[] = [];
+    if (qaName.trim()) parts.push(`[Name: ${qaName.trim()}]`);
+    parts.push(`[${qaSegment === "room" ? "In Person" : "Virtual"}]`);
+    if (qaTopic) parts.push(`[Topic: ${qaTopic}]`);
+    parts.push(qaMessage.trim());
+    const fullMessage = parts.join(" ");
+
     socket.emit("audience:message", {
       sessionId: session.id,
-      message: qaMessage.trim(),
+      message: fullMessage,
       voterToken: voterToken || "survey-participant",
     });
 
@@ -530,10 +544,13 @@ export default function Survey() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="border-t pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Have a question or comment?</span>
-                  <span className="text-xs text-muted-foreground">(optional)</span>
+                <div className="text-center mb-3">
+                  <MessageSquare className="w-6 h-6 mx-auto mb-1 text-primary" />
+                  <span className="text-sm font-semibold">Ask Rabbi a question!</span>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Please use this form to submit a question related to the themes of the show.
+                    Not all questions will be used, but every submission will be reviewed by our production team.
+                  </p>
                 </div>
 
                 {qaSent ? (
@@ -542,21 +559,83 @@ export default function Survey() {
                     Question submitted! The host will see it.
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <Textarea
-                      placeholder="Type your question or comment..."
-                      value={qaMessage}
-                      onChange={(e) => setQaMessage(e.target.value.slice(0, 500))}
-                      className="min-h-[80px] text-sm resize-none"
-                      data-testid="input-survey-question"
-                    />
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="survey-qa-name" className="text-xs">Your Name</Label>
+                      <Input
+                        id="survey-qa-name"
+                        data-testid="input-survey-qa-name"
+                        placeholder="Enter your name"
+                        value={qaName}
+                        onChange={(e) => setQaName(e.target.value.slice(0, 100))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Are you attending...</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={qaSegment === "room" ? "default" : "outline"}
+                          size="sm"
+                          className="flex-1 h-8 text-xs"
+                          data-testid="button-survey-segment-room"
+                          onClick={() => setQaSegment("room")}
+                        >
+                          <User className="w-3 h-3 mr-1" />
+                          In Person
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={qaSegment === "remote" ? "default" : "outline"}
+                          size="sm"
+                          className="flex-1 h-8 text-xs"
+                          data-testid="button-survey-segment-remote"
+                          onClick={() => setQaSegment("remote")}
+                        >
+                          <MessageSquare className="w-3 h-3 mr-1" />
+                          Virtual
+                        </Button>
+                      </div>
+                    </div>
+
+                    {session.qaTopics && session.qaTopics.length > 0 && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Select the Show Topic That Best Fits Your Question</Label>
+                        <Select value={qaTopic} onValueChange={setQaTopic}>
+                          <SelectTrigger className="h-8 text-sm" data-testid="select-survey-qa-topic">
+                            <SelectValue placeholder="Choose a topic..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {session.qaTopics.map((t) => (
+                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <Label htmlFor="survey-qa-message" className="text-xs">Your Question</Label>
+                      <p className="text-[10px] text-muted-foreground">
+                        Keep it clear and focused (1-3 sentences). May be edited for clarity.
+                      </p>
+                      <Textarea
+                        id="survey-qa-message"
+                        placeholder="Type your question..."
+                        value={qaMessage}
+                        onChange={(e) => setQaMessage(e.target.value.slice(0, 500))}
+                        className="min-h-[80px] text-sm resize-none"
+                        data-testid="input-survey-question"
+                      />
+                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">{qaMessage.length}/500</span>
                       <Button
                         size="sm"
-                        variant="outline"
                         onClick={handleSendQuestion}
-                        disabled={!qaMessage.trim() || qaSending}
+                        disabled={!qaMessage.trim() || !qaName.trim() || (session.qaTopics && session.qaTopics.length > 0 && !qaTopic) || qaSending}
                         data-testid="button-send-survey-question"
                       >
                         {qaSending ? (
