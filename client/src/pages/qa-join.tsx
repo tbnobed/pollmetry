@@ -3,12 +3,22 @@ import { useParams, useSearch, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { MessageSquare, Send, Check, Loader2, XCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MessageSquare, Send, Check, Loader2, XCircle, User } from "lucide-react";
 import type { Session, Segment } from "@shared/schema";
 import { getSocket, connectSocket, setSegment } from "@/lib/socket";
 import { getVoterToken, hashToken } from "@/lib/voter-token";
+
+const SHOW_TOPICS = [
+  "Creation",
+  "Noah's Ark",
+  "David and Goliath",
+  "The Tower of Babel",
+];
 
 export default function QAJoin() {
   const params = useParams<{ code: string }>();
@@ -17,8 +27,11 @@ export default function QAJoin() {
 
   const searchParams = new URLSearchParams(search);
   const segmentParam = searchParams.get("segment");
-  const segment: Segment = segmentParam === "room" ? "room" : "remote";
+  const initialSegment: Segment = segmentParam === "room" ? "room" : "remote";
 
+  const [name, setName] = useState("");
+  const [topic, setTopic] = useState("");
+  const [selectedSegment, setSelectedSegment] = useState<Segment>(initialSegment);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -34,7 +47,7 @@ export default function QAJoin() {
   useEffect(() => {
     if (!session) return;
 
-    const socket = connectSocket(segment);
+    const socket = connectSocket(selectedSegment);
     const voterToken = getVoterToken();
     const tokenHash = hashToken(voterToken);
 
@@ -42,7 +55,7 @@ export default function QAJoin() {
       setIsConnected(true);
       socket.emit("audience:join", {
         code,
-        segment,
+        segment: selectedSegment,
         voterToken: tokenHash,
       });
     });
@@ -55,14 +68,14 @@ export default function QAJoin() {
       setSessionClosed(true);
     });
 
-    setSegment(segment);
+    setSegment(selectedSegment);
 
     return () => {
       socket.off("connect");
       socket.off("disconnect");
       socket.off("session:closed");
     };
-  }, [session, code, segment]);
+  }, [session, code, selectedSegment]);
 
   const handleSubmit = () => {
     if (!message.trim() || isSending || !isConnected || !session) return;
@@ -72,9 +85,15 @@ export default function QAJoin() {
     const voterToken = getVoterToken();
     const tokenHash = hashToken(voterToken);
 
+    const parts: string[] = [];
+    if (name.trim()) parts.push(`[Name: ${name.trim()}]`);
+    if (topic) parts.push(`[Topic: ${topic}]`);
+    parts.push(message.trim());
+    const fullMessage = parts.join(" ");
+
     socket.emit("audience:message", {
       sessionId: session.id,
-      message: message.trim(),
+      message: fullMessage,
       voterToken: tokenHash,
     });
 
@@ -83,7 +102,7 @@ export default function QAJoin() {
       setSent(true);
       setMessage("");
       setSentCount(prev => prev + 1);
-      setTimeout(() => setSent(false), 3000);
+      setTimeout(() => setSent(false), 4000);
       socket.off("message:confirmed", onConfirm);
     };
 
@@ -135,7 +154,7 @@ export default function QAJoin() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-4">
+      <main className="flex-1 flex items-start justify-center p-4 pt-6">
         <div className="w-full max-w-lg">
           {sessionClosed ? (
             <Card>
@@ -156,12 +175,13 @@ export default function QAJoin() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="p-6 space-y-4">
-                <div className="text-center mb-2">
+              <CardContent className="p-6 space-y-5">
+                <div className="text-center mb-1">
                   <MessageSquare className="w-10 h-10 mx-auto mb-2 text-primary" />
-                  <h2 className="text-xl font-semibold">Ask a Question</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Submit your question or comment to the host
+                  <h2 className="text-xl font-semibold">Ask Rabbi a question!</h2>
+                  <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                    Please use this form to submit a question related to the themes of the show.
+                    Not all questions will be used, but every submission will be reviewed by our production team.
                   </p>
                 </div>
 
@@ -178,29 +198,92 @@ export default function QAJoin() {
                   </div>
                 ) : (
                   <>
-                    <Textarea
-                      placeholder="Type your question or comment..."
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value.slice(0, 500))}
-                      className="min-h-[120px] text-base resize-none"
-                      data-testid="input-qa-message"
-                    />
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">{message.length}/500</span>
-                      <Button
-                        size="lg"
-                        onClick={handleSubmit}
-                        disabled={!message.trim() || isSending || !isConnected}
-                        data-testid="button-send-qa-message"
-                      >
-                        {isSending ? (
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        ) : (
-                          <Send className="w-5 h-5 mr-2" />
-                        )}
-                        Submit Question
-                      </Button>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="qa-name">Your Name</Label>
+                      <Input
+                        id="qa-name"
+                        data-testid="input-qa-name"
+                        placeholder="Enter your name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value.slice(0, 100))}
+                      />
                     </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Are you attending...</Label>
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          variant={selectedSegment === "room" ? "default" : "outline"}
+                          className="flex-1"
+                          data-testid="button-segment-room"
+                          onClick={() => setSelectedSegment("room")}
+                        >
+                          <User className="w-4 h-4 mr-2" />
+                          In Person
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={selectedSegment === "remote" ? "default" : "outline"}
+                          className="flex-1"
+                          data-testid="button-segment-remote"
+                          onClick={() => setSelectedSegment("remote")}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Virtual
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="qa-topic">Select the Show Topic That Best Fits Your Question</Label>
+                      <Select value={topic} onValueChange={setTopic}>
+                        <SelectTrigger id="qa-topic" data-testid="select-qa-topic">
+                          <SelectValue placeholder="Choose a topic..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SHOW_TOPICS.map((t) => (
+                            <SelectItem key={t} value={t} data-testid={`option-topic-${t.toLowerCase().replace(/\s+/g, "-")}`}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="qa-message">Your Question</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Please keep your question clear and focused. Aim for 1-3 sentences.
+                        Questions may be lightly edited for clarity or time.
+                      </p>
+                      <Textarea
+                        id="qa-message"
+                        placeholder="Type your question..."
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value.slice(0, 500))}
+                        className="min-h-[100px] text-base resize-none"
+                        data-testid="input-qa-message"
+                      />
+                      <div className="text-right">
+                        <span className="text-xs text-muted-foreground">{message.length}/500</span>
+                      </div>
+                    </div>
+
+                    <Button
+                      size="lg"
+                      className="w-full"
+                      onClick={handleSubmit}
+                      disabled={!message.trim() || !name.trim() || !topic || isSending || !isConnected}
+                      data-testid="button-send-qa-message"
+                    >
+                      {isSending ? (
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5 mr-2" />
+                      )}
+                      Submit Question
+                    </Button>
                   </>
                 )}
               </CardContent>
