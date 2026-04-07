@@ -13,12 +13,6 @@ import type { Session, Segment } from "@shared/schema";
 import { getSocket, connectSocket, setSegment } from "@/lib/socket";
 import { getVoterToken, hashToken } from "@/lib/voter-token";
 
-const SHOW_TOPICS = [
-  "Creation",
-  "Noah's Ark",
-  "David and Goliath",
-  "The Tower of Babel",
-];
 
 export default function QAJoin() {
   const params = useParams<{ code: string }>();
@@ -235,21 +229,23 @@ export default function QAJoin() {
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="qa-topic">Select the Show Topic That Best Fits Your Question</Label>
-                      <Select value={topic} onValueChange={setTopic}>
-                        <SelectTrigger id="qa-topic" data-testid="select-qa-topic">
-                          <SelectValue placeholder="Choose a topic..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SHOW_TOPICS.map((t) => (
-                            <SelectItem key={t} value={t} data-testid={`option-topic-${t.toLowerCase().replace(/\s+/g, "-")}`}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {session.qaTopics && session.qaTopics.length > 0 && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="qa-topic">Select the Show Topic That Best Fits Your Question</Label>
+                        <Select value={topic} onValueChange={setTopic}>
+                          <SelectTrigger id="qa-topic" data-testid="select-qa-topic">
+                            <SelectValue placeholder="Choose a topic..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {session.qaTopics.map((t) => (
+                              <SelectItem key={t} value={t} data-testid={`option-topic-${t.toLowerCase().replace(/\s+/g, "-")}`}>
+                                {t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     <div className="space-y-1.5">
                       <Label htmlFor="qa-message">Your Question</Label>
@@ -274,7 +270,7 @@ export default function QAJoin() {
                       size="lg"
                       className="w-full"
                       onClick={handleSubmit}
-                      disabled={!message.trim() || !name.trim() || !topic || isSending || !isConnected}
+                      disabled={!message.trim() || !name.trim() || (session.qaTopics && session.qaTopics.length > 0 && !topic) || isSending || !isConnected}
                       data-testid="button-send-qa-message"
                     >
                       {isSending ? (

@@ -31,6 +31,7 @@ const migrations = [
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS question_time_limit_seconds integer',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS opening_message text',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS closing_message text',
+  'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS qa_topics text[]',
   'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS created_by_id varchar',
 
   // --- users table columns ---

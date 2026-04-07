@@ -27,6 +27,7 @@ export const sessions = pgTable("sessions", {
   questionTimeLimitSeconds: integer("question_time_limit_seconds"),
   openingMessage: text("opening_message"),
   closingMessage: text("closing_message"),
+  qaTopics: text("qa_topics").array(),
   createdById: varchar("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -162,6 +163,7 @@ export const insertSessionSchema = createInsertSchema(sessions).pick({
   questionTimeLimitSeconds: true,
   openingMessage: true,
   closingMessage: true,
+  qaTopics: true,
 });
 
 export const insertSurveyCompletionSchema = createInsertSchema(surveyCompletions).pick({

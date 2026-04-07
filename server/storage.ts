@@ -38,6 +38,7 @@ export interface IStorage {
   deleteSession(id: string): Promise<void>;
   updateSessionActive(id: string, isActive: boolean): Promise<Session | undefined>;
   updateSessionMessages(id: string, openingMessage: string | null, closingMessage: string | null): Promise<Session | undefined>;
+  updateSessionTopics(id: string, qaTopics: string[] | null): Promise<Session | undefined>;
   
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestion(id: string): Promise<Question | undefined>;
@@ -123,6 +124,7 @@ export class DatabaseStorage implements IStorage {
       questionTimeLimitSeconds: insertSession.questionTimeLimitSeconds,
       openingMessage: insertSession.openingMessage || null,
       closingMessage: insertSession.closingMessage || null,
+      qaTopics: insertSession.qaTopics || null,
       code,
       createdById,
     }).returning();
@@ -169,6 +171,14 @@ export class DatabaseStorage implements IStorage {
   async updateSessionMessages(id: string, openingMessage: string | null, closingMessage: string | null): Promise<Session | undefined> {
     const [session] = await db.update(sessions)
       .set({ openingMessage, closingMessage })
+      .where(eq(sessions.id, id))
+      .returning();
+    return session || undefined;
+  }
+
+  async updateSessionTopics(id: string, qaTopics: string[] | null): Promise<Session | undefined> {
+    const [session] = await db.update(sessions)
+      .set({ qaTopics })
       .where(eq(sessions.id, id))
       .returning();
     return session || undefined;

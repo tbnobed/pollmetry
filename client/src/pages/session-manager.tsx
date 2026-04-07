@@ -13,7 +13,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   Plus, ArrowLeft, Play, Square, Eye, EyeOff, Lock, RotateCcw, 
   Loader2, Copy, BarChart3, Trash2, GripVertical, CheckCircle, Clock, QrCode, Pencil,
-  Users, TrendingUp, Activity
+  Users, TrendingUp, Activity, MessageSquare, MessageCircle, Save, Tag, X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -23,7 +23,6 @@ import type { Session, Question, QuestionType, QuestionState, VoteTally } from "
 import { Progress } from "@/components/ui/progress";
 import { EMOJIS } from "@shared/schema";
 import { CountdownTimer } from "@/components/countdown-timer";
-import { MessageSquare, MessageCircle, Save } from "lucide-react";
 
 export default function SessionManager() {
   const params = useParams<{ id: string }>();
@@ -45,6 +44,9 @@ export default function SessionManager() {
   const [editingClosing, setEditingClosing] = useState(false);
   const [openingDraft, setOpeningDraft] = useState("");
   const [closingDraft, setClosingDraft] = useState("");
+  const [editingTopics, setEditingTopics] = useState(false);
+  const [topicsDraft, setTopicsDraft] = useState<string[]>([]);
+  const [newTopic, setNewTopic] = useState("");
 
   const { data: session, isLoading: sessionLoading } = useQuery<Session>({
     queryKey: ["/api/sessions", sessionId],
@@ -171,7 +173,22 @@ export default function SessionManager() {
       setEditingClosing(false);
     },
     onError: () => {
-      toast({ title: "Failed to update message", variant: "destructive" });
+      toast({ title: "Failed to update", variant: "destructive" });
+    },
+  });
+
+  const updateTopicsMutation = useMutation({
+    mutationFn: async (qaTopics: string[] | null) => {
+      await apiRequest("PATCH", `/api/sessions/${sessionId}/topics`, { qaTopics });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions", sessionId] });
+      toast({ title: "Topics updated" });
+      setEditingTopics(false);
+      setNewTopic("");
+    },
+    onError: () => {
+      toast({ title: "Failed to update topics", variant: "destructive" });
     },
   });
 
@@ -963,6 +980,106 @@ export default function SessionManager() {
                       variant="ghost"
                       onClick={() => { setClosingDraft(session?.closingMessage || ""); setEditingClosing(true); }}
                       data-testid="button-edit-closing-message"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-dashed border-muted-foreground/30">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Tag className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Q&A Topics</CardTitle>
+                      {editingTopics ? (
+                        <div className="mt-2 space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            {topicsDraft.map((t, i) => (
+                              <Badge key={i} variant="secondary" className="flex items-center gap-1 py-1 px-2">
+                                {t}
+                                <button
+                                  onClick={() => setTopicsDraft(topicsDraft.filter((_, j) => j !== i))}
+                                  className="ml-1 hover:text-destructive"
+                                  data-testid={`button-remove-topic-${i}`}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Input
+                              value={newTopic}
+                              onChange={(e) => setNewTopic(e.target.value)}
+                              placeholder="Add a topic..."
+                              maxLength={200}
+                              className="flex-1"
+                              data-testid="input-new-topic"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && newTopic.trim()) {
+                                  e.preventDefault();
+                                  setTopicsDraft([...topicsDraft, newTopic.trim()]);
+                                  setNewTopic("");
+                                }
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (newTopic.trim()) {
+                                  setTopicsDraft([...topicsDraft, newTopic.trim()]);
+                                  setNewTopic("");
+                                }
+                              }}
+                              disabled={!newTopic.trim()}
+                              data-testid="button-add-topic"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => updateTopicsMutation.mutate(topicsDraft.length > 0 ? topicsDraft : null)}
+                              disabled={updateTopicsMutation.isPending}
+                              data-testid="button-save-topics"
+                            >
+                              <Save className="w-3 h-3 mr-1" />
+                              Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingTopics(false)} data-testid="button-cancel-topics">
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-1">
+                          {session?.qaTopics && session.qaTopics.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {session.qaTopics.map((t, i) => (
+                                <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground italic">No topics set — audience can submit any question</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {!editingTopics && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setTopicsDraft(session?.qaTopics || []); setEditingTopics(true); }}
+                      data-testid="button-edit-topics"
                     >
                       <Pencil className="w-3 h-3" />
                     </Button>

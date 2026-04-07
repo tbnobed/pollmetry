@@ -1020,6 +1020,38 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/sessions/:sessionId/topics", requireAuth, async (req, res) => {
+    try {
+      const { qaTopics } = req.body;
+
+      if (qaTopics !== undefined && qaTopics !== null && !Array.isArray(qaTopics)) {
+        return res.status(400).json({ error: "qaTopics must be an array of strings or null" });
+      }
+      if (Array.isArray(qaTopics) && qaTopics.some((t: any) => typeof t !== "string" || t.length > 200)) {
+        return res.status(400).json({ error: "Each topic must be a string of 200 characters or less" });
+      }
+      if (Array.isArray(qaTopics) && qaTopics.length > 20) {
+        return res.status(400).json({ error: "Maximum 20 topics allowed" });
+      }
+
+      const session = await storage.getSession(req.params.sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      const user = req.user as User;
+      if (session.createdById !== user.id && !user.isAdmin) {
+        return res.status(403).json({ error: "Not authorized to modify this session" });
+      }
+
+      const filtered = Array.isArray(qaTopics) ? qaTopics.filter((t: string) => t.trim()) : null;
+      const updatedSession = await storage.updateSessionTopics(req.params.sessionId, filtered && filtered.length > 0 ? filtered : null);
+      res.json(updatedSession);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   function sanitizeMessage(msg: any) {
     const { voterTokenHash, ...safe } = msg;
     return safe;
